@@ -82,7 +82,7 @@ var VESTIGING = "";
 //
 // Blijft dit leeg, dan maakt het script een map "Boekhoudapp Kern 6
 // werkbestanden" aan in de eigen Drive van het account waaronder het draait.
-var MAP_ID_GEDEELD = "";
+var MAP_ID_GEDEELD = "1ASkm354zloG8ZTfxkVu_nSS52ffDNFNa";
 
 var BLAD_KLAS = "Klas";
 var BLAD_INZENDINGEN = "Inzendingen";   // + " LEU", " SKW" …

@@ -15,7 +15,7 @@
 // De URL die Google geeft na "Implementeren → Nieuwe implementatie →
 // Web-app". Ze eindigt op /exec. Blijft ze leeg, dan werkt de app enkel
 // met de opslag in de browser (niets bewaren op de Drive, niets indienen).
-const WEB_APP_URL = "";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxG6wCFhx6M0dJUMpYPGPt-iePC7lHMbmo39NVwMAfSWJ8i51WwRKD-qe_FqVsLFDUQMQ/exec";
 
 // Moet exact hetzelfde woord zijn als SLEUTEL bovenaan Code.gs.
 // Let op: dit staat in publiek leesbare code. Het is een drempel tegen
