@@ -29,7 +29,7 @@
 //               staan samen op de pagina Resultaatverwerking)
 
 const OPDRACHTEN = [
-  { ref: "BB", categorie: "Beginbalans", titel: "Beginbalans (BB)" },
+  { ref: "BB", categorie: "Beginbalans", titel: "Beginbalans (BB)", handboek: "meer info: p. 76-77" },
 
   { ref: "AK01", categorie: "Aankopen", titel: "Aankoopfactuur AK01", handboek: "p. 226 · doc A · Uitgeverij Lannoo NV", auto: "440000" },
   { ref: "AK02", categorie: "Aankopen", titel: "Aankoopfactuur AK02", handboek: "p. 227 · doc B · Hoya Lens Belgium NV", auto: "440000" },
@@ -43,16 +43,16 @@ const OPDRACHTEN = [
   { ref: "AK10", categorie: "Aankopen", titel: "Aankoopfactuur AK10", handboek: "p. 235 · doc J · HGM Glasses Manufacturer Co. Ltd.", auto: "440000" },
   { ref: "AK11", categorie: "Aankopen", titel: "Aankoopfactuur AK11", handboek: "p. 236 · doc K · MS Amlin", auto: "440000" },
 
-  { ref: "VK01", categorie: "Verkopen", titel: "Verkoopfactuur VK01", handboek: "p. 237 · doc A · Particulier", auto: "400000" },
+  { ref: "VK01", categorie: "Verkopen", titel: "Verkoopfactuur VK01", handboek: "p. 237 · doc A · Particulieren", auto: "400000" },
   { ref: "VK02", categorie: "Verkopen", titel: "Verkoopfactuur VK02", handboek: "p. 238 · doc B · Brilart", auto: "400000" },
   { ref: "VK03", categorie: "Verkopen", titel: "Verkoopfactuur VK03", handboek: "p. 239 · doc C · Onghena Opticiens", auto: "400000" },
-  { ref: "VK04", categorie: "Verkopen", titel: "Verkoopfactuur VK04", handboek: "p. 240 · doc D · Particulier", auto: "400000" },
+  { ref: "VK04", categorie: "Verkopen", titel: "Verkoopfactuur VK04", handboek: "p. 240 · doc D · Particulieren", auto: "400000" },
   { ref: "VK05", categorie: "Verkopen", titel: "Verkoopfactuur VK05", handboek: "p. 241 · doc E · Optiek Geyskens", auto: "400000" },
   { ref: "VK06", categorie: "Verkopen", titel: "Verkoopfactuur VK06", handboek: "p. 242 · doc F · Brilart", auto: "400000" },
   { ref: "VK07", categorie: "Verkopen", titel: "Verkoopfactuur VK07", handboek: "p. 243 · doc G · Brillier", auto: "400000" },
   // De dagontvangsten horen didactisch bij de verkopen: het is dezelfde
   // beweging, alleen aan particulieren in de winkel.
-  { ref: "ONTV01", categorie: "Verkopen", titel: "Dagontvangsten ONTV01", handboek: "p. 244 · doc H · Particulier", auto: "400000" },
+  { ref: "ONTV01", categorie: "Verkopen", titel: "Dagontvangsten ONTV01", handboek: "p. 244 · doc H · Particulieren", auto: "400000" },
   { ref: "VK08", categorie: "Verkopen", titel: "Verkoopfactuur VK08", handboek: "p. 244 · doc I · Vue des Remparts", auto: "400000" },
   { ref: "VK09", categorie: "Verkopen", titel: "Verkoopfactuur VK09", handboek: "p. 245 · doc J · Lauder and Rees", auto: "400000" },
 
@@ -80,10 +80,10 @@ const OPDRACHTEN = [
     instructie: "Kijk in de T-rekeningen rechts naar het saldo van de tussentijdse btw-rekeningen (dat zijn de 411- en 451-rekeningen die niet op 000 eindigen). Na het invullen van de btw-aangifte van het kwartaal moet de btw van deze tijdelijke rekeningen gecentraliseerd worden op 411000 Terug te vorderen btw-saldo of 451000 Te betalen btw-saldo.",
   },
 
-  { ref: "AFSCHR", categorie: "Eindejaarsverrichtingen", titel: "Afschrijvingen AFSCHR" },
-  { ref: "DUB01", categorie: "Eindejaarsverrichtingen", titel: "Dubieuze debiteur DUB01" },
-  { ref: "DUB02", categorie: "Eindejaarsverrichtingen", titel: "Waardevermindering DUB02" },
-  { ref: "VR", categorie: "Eindejaarsverrichtingen", titel: "Voorraadwijziging VR" },
+  { ref: "AFSCHR", categorie: "Eindejaarsverrichtingen", titel: "Afschrijvingen AFSCHR", handboek: "meer info: p. 200" },
+  { ref: "DUB01", categorie: "Eindejaarsverrichtingen", titel: "Dubieuze debiteur DUB01", handboek: "meer info: p. 206" },
+  { ref: "DUB02", categorie: "Eindejaarsverrichtingen", titel: "Waardevermindering DUB02", handboek: "meer info: p. 206" },
+  { ref: "VR", categorie: "Eindejaarsverrichtingen", titel: "Voorraadwijziging VR", handboek: "meer info: p. 208" },
   { ref: "LENING", categorie: "Eindejaarsverrichtingen", titel: "Lening LENING", handboek: "aflossingstabel: p. 255 · doc I" },
 
   // RES01 en RES02 staan niet op een categorietabblad maar samen op de

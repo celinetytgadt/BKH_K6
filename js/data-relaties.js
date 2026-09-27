@@ -9,7 +9,7 @@
 
 const RELATIES = {
   klanten: [
-    "Particulier",
+    "Particulieren",
     "Brilart",
     "Onghena Opticiens",
     "Optiek Geyskens",
@@ -23,8 +23,8 @@ const RELATIES = {
     "Optiek Goormachtigh",
     "Roxx Oogzorg",
     // Enkel op de beginbalans.
-    "Yalora",
-    "Dobbelaere",
+    "Yalora Optiek",
+    "Optiek Dobbelaere",
     "Dejavu",
   ],
   leveranciers: [
@@ -40,6 +40,6 @@ const RELATIES = {
     "MS Amlin",
     "Securex",
     // Enkel op de beginbalans.
-    "Tokai",
+    "Tokai Optecs nv",
   ],
 };

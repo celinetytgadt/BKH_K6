@@ -101,6 +101,7 @@ const HANDMATIGE_CONTROLES = [
   {
     id: "beginbalans-klopt",
     categorie: "Beginbalans",
+    handboek: "beginbalans: p. 76-77",
     vraag: "Komt de balans die je hierboven gelegd hebt overeen met de beginbalans in je handboek?",
     toelichting: "Vergelijk vak per vak met de beginbalans. Staat er een rubriek op een plaats waar ze niet hoort, of ontbreekt er een bedrag, ga dan terug naar je boeking van BB.",
   },
@@ -232,6 +233,7 @@ const HANDMATIGE_CONTROLES = [
   /* ---------------- Eindejaarsverrichtingen ---------------- */
   {
     id: "vaste-activa-nummers",
+    handboek: "meer info: p. 200",
     categorie: "Eindejaarsverrichtingen",
     vraag: "Hoort bij elke aanschafwaarde de afschrijving met hetzelfde nummer?",
     toelichting: "Elk soort vast actief heeft twee rekeningen die bij elkaar horen: de aanschafwaarde (bv. 240200) en de geboekte afschrijvingen met hetzelfde basisnummer, eindigend op 9 (240209). Boek je de aankoop van computers op 240200, dan hoort de afschrijving erop op 240209 — niet op 240009 of 241009. Klopt dat niet, dan lijkt het alsof er iets afgeschreven wordt dat nooit gekocht is.",
@@ -239,6 +241,7 @@ const HANDMATIGE_CONTROLES = [
   },
   {
     id: "dubieuze-debiteur",
+    handboek: "meer info: p. 206",
     categorie: "Eindejaarsverrichtingen",
     vraag: "Staat de dubieuze klant niet meer bij de gewone klanten?",
     toelichting: "Een klant die dubieus wordt, gaat met zijn volledige openstaande bedrag van 400000 naar 407000. Kijk op de pagina Klanten & leveranciers of die klant op 400000 nu op 0 staat.",
@@ -246,6 +249,7 @@ const HANDMATIGE_CONTROLES = [
   },
   {
     id: "voorraad-klopt",
+    handboek: "meer info: p. 208",
     categorie: "Eindejaarsverrichtingen",
     vraag: "Klopt de voorraad met de inventaris?",
     toelichting: "Het saldo van de actiefrekening \"Voorraad handelsgoederen\" moet gelijk zijn aan de waarde van de voorraad op het einde van het boekjaar.",

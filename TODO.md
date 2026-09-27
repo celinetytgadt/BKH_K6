@@ -7,7 +7,5 @@ Wat klaar is, mag weg (of vink het af met `[x]`).
 
 - [ ] Web-app publiceren en de URL invullen in `js/config-koppeling.js`
   (zie `HANDLEIDING-koppeling.md`).
-- [ ] Handboekverwijzingen aanvullen voor BB en de eindejaarsverrichtingen
-  (AFSCHR, DUB01, DUB02, VR) — veld `handboek` in `js/data-opdrachten.js`.
-- [ ] Schrijfwijze van de relaties op de beginbalans nakijken (Yalora,
-  Dobbelaere, Dejavu, Tokai, Mulders Optiek) in `js/data-relaties.js`.
+- [ ] Sleutel van de resultaatverwerking (RES01, RES02) nakijken: de winst
+  uit de boekingen vóór RES01 is 3.495,84.
