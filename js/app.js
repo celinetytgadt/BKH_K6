@@ -1103,9 +1103,7 @@
     var html = '<h1 class="pagina-titel">Automatisch geboekt</h1>';
     if (!automatischZichtbaar()) {
       html += '<div class="paneel paneel-tip"><p>Hier verschijnen straks facturen die al automatisch geboekt werden. ' +
-        "Ze worden zichtbaar zodra je al je " + escapeAttr(AUTOMATISCH_NA_CATEGORIE.toLowerCase()) + " geboekt hebt.</p>" +
-        "<p><strong>Let op:</strong> vanaf dan gaan je " + escapeAttr(AUTOMATISCH_NA_CATEGORIE.toLowerCase()) +
-        " op slot. Kijk ze dus eerst goed na.</p></div>";
+        "Ze worden zichtbaar zodra je al je " + escapeAttr(AUTOMATISCH_NA_CATEGORIE.toLowerCase()) + " geboekt hebt.</p></div>";
       return html;
     }
     html += '<p class="pagina-subtitel">' + escapeAttr(AUTOMATISCH_TEKST) + "</p>";
