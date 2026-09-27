@@ -1060,9 +1060,10 @@
 
     var html = '<details class="paneel opdracht-blok" id="blok-' + escapeAttr(ref) + '" data-doc-sleutel="' + escapeAttr(sleutel) + '"' + (open ? " open" : "") + ">";
     html += '<summary class="opdracht-kop">' +
-      '<span class="opdracht-ref">' + escapeAttr(ref) + "</span>" +
-      '<span class="opdracht-titel">' + escapeAttr(def.titel) + "</span>" +
-      (def.handboek ? '<span class="opdracht-handboek">📖 ' + escapeAttr(def.handboek) + "</span>" : "") +
+      // Eén regel: AK01 · Uitgeverij Lannoo NV · 📖 p. 226-A
+      '<span class="opdracht-titel"><strong>' + escapeAttr(ref) + "</strong>" +
+      " · " + escapeAttr(def.kop || def.titel) +
+      (def.handboek ? ' · <span class="opdracht-handboek">📖 ' + escapeAttr(def.handboek) + "</span>" : "") + "</span>" +
       '<span class="opdracht-status ' + st.klasse + '">' + escapeAttr(st.tekst) + "</span>" +
       "</summary>";
     html += '<div class="opdracht-inhoud">';
