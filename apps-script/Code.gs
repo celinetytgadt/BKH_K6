@@ -1,4 +1,13 @@
 /**
+ * @OnlyCurrentDoc
+ *
+ * Deze regel beperkt de toestemming voor Google Sheets tot DEZE Sheet: het
+ * script kan geen andere spreadsheets van jou openen. (Voor Drive is er nog
+ * wel toestemming nodig: de werkbestanden van de leerlingen staan als
+ * bestanden in de map MAP_ID_GEDEELD.)
+ */
+
+/**
  * Boekhoudapp Kern 6 (Odette Lunettes.edu) — De MET
  * Serverkant: bewaren van werk, indienen ter nakijking, feedback teruggeven.
  *
