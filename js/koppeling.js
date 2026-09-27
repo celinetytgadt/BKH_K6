@@ -291,6 +291,7 @@
           // haar eigen klaslijst, teksten en taken.
           instellingen = {}; taken = {}; klasServer = null;
           window.INSTELLINGEN = instellingen;
+          if (window.BEHEER && window.BEHEER.vergrendel) window.BEHEER.vergrendel();
           vulNamen();
           haalInstellingen();
         });

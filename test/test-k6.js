@@ -476,6 +476,19 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("taken van LEU blijven (8), SKW heeft er nu 1", takenRijen.filter((r) => r[0] === "LEU").length === 8 &&
     takenRijen.filter((r) => r[0] === "SKW").length === 1, takenRijen.length);
 
+  // Beheer ontgrendelen in SKW en dan van vestiging wisselen: weer op slot.
+  const vs = d.getElementById("vestiging-select");
+  vs.value = "SKW"; vs.dispatchEvent(new w.Event("change"));
+  await wacht(40);
+  d.querySelector('[data-page-type="beheer"]').click();
+  d.querySelector('[data-role="expertcode"]').value = "codeSKW";
+  d.querySelector('[data-role="ontgrendel"]').click();
+  await wacht(80);
+  check("beheer SKW open in de app", /Bewaren/.test(w.BEHEER.html()), w.BEHEER.html().slice(0, 200));
+  vs.value = "TW"; vs.dispatchEvent(new w.Event("change"));
+  await wacht(40);
+  check("na een andere vestiging staat beheer weer op slot", /expertcode/i.test(w.BEHEER.html()) && !/Bewaren/.test(w.BEHEER.html()));
+
   console.log("\n8. Menu's in de Sheet");
   laatsteAlert = "";
   omgeving.nakijkenOpenInzendingen();

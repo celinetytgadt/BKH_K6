@@ -402,6 +402,17 @@
       return !!(a && a.ingesteld());
     },
 
+    // Een andere vestiging gekozen: het beheertabblad gaat weer op slot.
+    // De expertcode en de gegevens hoorden bij de vorige vestiging; zonder
+    // dit werd er met de verkeerde code in de verkeerde tabbladen bewaard.
+    vergrendel: function () {
+      ontgrendeld = false;
+      expertcode = "";
+      bezig = false;
+      melding = null;
+      model = { instellingen: {}, taken: [], klas: [] };
+    },
+
     html: function () {
       return ontgrendeld ? htmlOpen() : htmlSlot();
     },
