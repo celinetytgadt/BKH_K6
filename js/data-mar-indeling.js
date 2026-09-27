@@ -1,0 +1,113 @@
+// data-mar-indeling.js
+// De indeling van het rekeningenstelsel in klassen en rubrieken. Deze lijst
+// voedt de filters in het T-rekeningenpaneel en in het zoekscherm voor
+// rekeningnummers. Rubrieken zonder rekening in js/mar.js worden niet getoond.
+
+const MAR_INDELING = [
+  {
+    klasse: "1",
+    oms: "Eigen vermogen",
+    rubrieken: [
+      { rubriek: "10", oms: "Kapitaal" },
+      { rubriek: "11", oms: "Uitgiftepremies" },
+      { rubriek: "12", oms: "Herwaarderingsmeerwaarden" },
+      { rubriek: "13", oms: "Reserves" },
+      { rubriek: "14", oms: "Overgedragen resultaat" },
+      { rubriek: "15", oms: "Kapitaalsubsidies" },
+      { rubriek: "16", oms: "Voorzieningen en uitgestelde belastingen" },
+      { rubriek: "17", oms: "Schulden op meer dan 1 jaar" },
+    ],
+  },
+  {
+    klasse: "2",
+    oms: "Vaste activa",
+    rubrieken: [
+      { rubriek: "20", oms: "Oprichtingskosten" },
+      { rubriek: "21", oms: "Immateriële vaste activa" },
+      { rubriek: "22", oms: "Terreinen & gebouwen" },
+      { rubriek: "23", oms: "Installaties, machines & uitrusting" },
+      { rubriek: "24", oms: "Meubilair & rollend materieel" },
+      { rubriek: "25", oms: "Vaste activa in leasing" },
+      { rubriek: "26", oms: "Overige materiële vaste activa" },
+      { rubriek: "27", oms: "Vaste activa in aanbouw" },
+      { rubriek: "28", oms: "Financiële vaste activa" },
+      { rubriek: "29", oms: "Vorderingen op meer dan 1 jaar" },
+    ],
+  },
+  {
+    klasse: "3",
+    oms: "Voorraden",
+    rubrieken: [
+      { rubriek: "30", oms: "Grondstoffen" },
+      { rubriek: "31", oms: "Hulpstoffen" },
+      { rubriek: "32", oms: "Goederen in bewerking" },
+      { rubriek: "33", oms: "Gereed product" },
+      { rubriek: "34", oms: "Handelsgoederen" },
+      { rubriek: "35", oms: "Onroerende goederen bestemd voor verkoop" },
+      { rubriek: "36", oms: "Vooruitbetalingen op voorraadinkopen" },
+      { rubriek: "37", oms: "Bestellingen in uitvoering" },
+    ],
+  },
+  {
+    klasse: "4",
+    oms: "Vorderingen en schulden op ten hoogste 1 jaar",
+    rubrieken: [
+      { rubriek: "40", oms: "Handelsvorderingen" },
+      { rubriek: "41", oms: "Overige vorderingen" },
+      { rubriek: "42", oms: "Schulden op meer dan 1 jaar die binnen het jaar vervallen" },
+      { rubriek: "43", oms: "Financiële schulden" },
+      { rubriek: "44", oms: "Handelsschulden" },
+      { rubriek: "45", oms: "Schulden mbt belastingen, bezoldigingen en sociale lasten" },
+      { rubriek: "46", oms: "Ontvangen vooruitbetalingen op bestellingen" },
+      { rubriek: "47", oms: "Schulden uit bestemming resultaat" },
+      { rubriek: "48", oms: "Diverse schulden" },
+      { rubriek: "49", oms: "Overlopende rekeningen" },
+    ],
+  },
+  {
+    klasse: "5",
+    oms: "Liquide middelen",
+    rubrieken: [
+      { rubriek: "50", oms: "Eigen aandelen" },
+      { rubriek: "51", oms: "Aandelen en geldbeleggingen" },
+      { rubriek: "52", oms: "Vastrentende effecten" },
+      { rubriek: "53", oms: "Termijndeposito's" },
+      { rubriek: "54", oms: "Te incasseren vervallen waarden" },
+      { rubriek: "55", oms: "Kredietinstellingen" },
+      { rubriek: "57", oms: "Kas" },
+      { rubriek: "58", oms: "Interne overboekingen" },
+      { rubriek: "59", oms: "Overige geldbeleggingen" },
+    ],
+  },
+  {
+    klasse: "6",
+    oms: "Kosten",
+    rubrieken: [
+      { rubriek: "60", oms: "Handelsgoederen, grond- en hulpstoffen" },
+      { rubriek: "61", oms: "Diensten en diverse goederen" },
+      { rubriek: "62", oms: "Bezoldigingen, sociale lasten en pensioenen" },
+      { rubriek: "63", oms: "Afschrijvingen, waardeverminderingen en voorzieningen" },
+      { rubriek: "64", oms: "Andere bedrijfskosten" },
+      { rubriek: "65", oms: "Financiële kosten" },
+      { rubriek: "66", oms: "Niet-recurrente bedrijfs- en financiële kosten" },
+      { rubriek: "67", oms: "Belastingen op het resultaat" },
+      { rubriek: "68", oms: "Overboeking naar uitgestelde belastingen en belastingvrije reserves" },
+      { rubriek: "69", oms: "Resultaatverwerking" },
+    ],
+  },
+  {
+    klasse: "7",
+    oms: "Opbrengsten",
+    rubrieken: [
+      { rubriek: "70", oms: "Omzet" },
+      { rubriek: "71", oms: "Wijziging in de voorraad goederen in bewerking" },
+      { rubriek: "72", oms: "Geproduceerde vaste activa" },
+      { rubriek: "74", oms: "Andere bedrijfsopbrengsten" },
+      { rubriek: "75", oms: "Financiële opbrengsten" },
+      { rubriek: "76", oms: "Niet-recurrente bedrijfs- of financiële opbrengsten" },
+      { rubriek: "77", oms: "Regularisering van belastingen" },
+      { rubriek: "78", oms: "Onttrekking aan uitgestelde belastingen en belastingvrije reserves" },
+      { rubriek: "79", oms: "Resultaatverwerking" },
+    ],
+  },
+];
