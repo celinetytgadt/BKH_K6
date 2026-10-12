@@ -220,6 +220,13 @@ function doGet(e) {
   try {
     var p = (e && e.parameter) || {};
     if (p.sleutel !== SLEUTEL) return antwoord({ ok: false, fout: "sleutel" });
+
+    // De namen van de drie vestigingen in één keer. De app vraagt ze op
+    // zodra ze opent, nog voor de leerling een school kiest: zo staat de
+    // keuzelijst klaar en is er maar één keer wachten op Google. Enkel de
+    // namen, nooit de codes.
+    if (p.actie === "namen") return antwoord(alleNamen_());
+
     if (!zetVestiging_(p.vestiging)) return antwoord({ ok: false, fout: "vestiging onbekend" });
 
     // De instellingen, de taken en de namen van de klaslijst. Bewust zonder
@@ -1422,6 +1429,21 @@ function takenLezen_() {
     uit.push({ categorie: cat, link: String(r[2] || "").trim(), opmerking: String(r[3] || "").trim() });
   });
   return uit;
+}
+
+// De namen per vestiging, uit één lezing van het tabblad Klas.
+function alleNamen_() {
+  var klas = {};
+  VESTIGINGEN.forEach(function (v) { klas[v] = []; });
+  var blad = bladOfNiets_(BLAD_KLAS);
+  if (blad && blad.getLastRow() >= 2) {
+    blad.getRange(2, 1, blad.getLastRow() - 1, 2).getValues().forEach(function (r) {
+      var v = String(r[0] || "").trim().toUpperCase();
+      var naam = String(r[1] || "").trim();
+      if (klas[v] && naam) klas[v].push(naam);
+    });
+  }
+  return { ok: true, klas: klas };
 }
 
 // Enkel de leerlingen van de vestiging van dit verzoek.

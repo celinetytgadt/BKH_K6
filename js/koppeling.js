@@ -42,6 +42,10 @@
   var vestiging = vestigingen.length === 1 ? vestigingen[0] : null;
 
   var AANMELD_KEY = "boekhoudapp_aanmelding";
+  // De laatst gekende namenlijsten van alle vestigingen (enkel namen, geen
+  // codes). Zo staat de keuzelijst er meteen bij het openen van de app,
+  // terwijl op de achtergrond de verse lijst opgehaald wordt.
+  var NAMEN_KEY = "boekhoudapp_k6_namen";
   var FEEDBACK_KEY_PREFIX = "boekhoudapp_feedback_";
 
   // Wat de vakexpert als "in orde" aanduidt, gaat op slot: het wordt niet
@@ -68,6 +72,8 @@
   var vulNamenFn = null;        // bouwAanmeldUI zet die hier klaar
   var laatsteFeedbackTijd = 0;
   var instellingenBezig = false;   // er loopt al een ophaalronde
+  var namenCache = {};             // { LEU: [...], SKW: [...], TW: [...] }
+  var namenBezig = false;          // de namen worden nog opgehaald
 
   /* ======================================================================
      Kleine hulpjes
@@ -104,6 +110,7 @@
     if (klasServer && klasServer.code === code && klasServer.namen.length) {
       return klasServer.namen;
     }
+    if (namenCache[code] && namenCache[code].length) return namenCache[code];
     if (typeof KLASLIJSTEN !== "undefined" && KLASLIJSTEN && KLASLIJSTEN[code]) {
       return KLASLIJSTEN[code] || [];
     }
@@ -312,6 +319,22 @@
       var lijst = vestiging ? klaslijstVoor(vestiging.code) : [];
       var metLijst = lijst.length > 0;
 
+      // Nog aan het laden: een keuzelijst die dat zegt, en niet het vrije
+      // naamveld dat daarna plots verspringt naar een keuzelijst. Het vrije
+      // veld komt er pas als de server echt geen namen gaf.
+      var laden = !metLijst && actief() && (namenBezig || instellingenBezig);
+      if (laden) {
+        select.hidden = false;
+        select.disabled = true;
+        select.innerHTML = '<option value="">Namen laden…</option>';
+        codeVeld.hidden = false;
+        knop.hidden = false;
+        naamInput.hidden = true;
+        var lbl = document.querySelector('label[for="leerling-naam-input"], label[for="leerling-select"]');
+        if (lbl) lbl.setAttribute("for", "leerling-select");
+        return;
+      }
+
       select.hidden = !metLijst;
       codeVeld.hidden = !metLijst;
       knop.hidden = !metLijst;
@@ -319,11 +342,19 @@
       var label = document.querySelector('label[for="leerling-naam-input"], label[for="leerling-select"]');
       if (label) label.setAttribute("for", metLijst ? "leerling-select" : "leerling-naam-input");
       if (!metLijst) { select.innerHTML = ""; return; }
+      select.disabled = false;
 
+      // Komt de verse lijst binnen terwijl de leerling al een naam koos (uit
+      // de bewaarde lijst), dan blijven die naam en de code gewoon staan.
+      var gekozen = select.disabled ? "" : select.value;
+      var zelfdeSchool = select.getAttribute("data-vestiging") === (vestiging ? vestiging.code : "");
       select.innerHTML = '<option value="">— kies je naam —</option>' +
         lijst.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + "</option>"; }).join("");
+      select.setAttribute("data-vestiging", vestiging ? vestiging.code : "");
 
-      if (aanmelding && vestiging && aanmelding.vestiging === vestiging.code) {
+      if (gekozen && zelfdeSchool && lijst.indexOf(gekozen) !== -1) {
+        select.value = gekozen;
+      } else if (aanmelding && vestiging && aanmelding.vestiging === vestiging.code) {
         select.value = aanmelding.naam;
         codeVeld.value = aanmelding.code;
       } else {
@@ -477,24 +508,62 @@
      aangemeld is: de namenlijst is er nu net voor nodig.
      ====================================================================== */
 
+  /* De namen van alle vestigingen in één verzoek per web-app, zodra de app
+     opent. Het opstarten van het script bij Google duurt soms enkele
+     seconden; zo gebeurt dat terwijl de leerling nog een school kiest. */
+  function haalNamen() {
+    var perUrl = {};
+    vestigingen.forEach(function (v) {
+      if (v.webAppUrl && !perUrl[v.webAppUrl]) perUrl[v.webAppUrl] = v;
+    });
+    var urls = Object.keys(perUrl);
+    if (!urls.length) return;
+    var open = urls.length;
+    namenBezig = true;
+    if (vulNamenFn) vulNamenFn();
+    function klaar() {
+      open--;
+      if (open > 0) return;
+      namenBezig = false;
+      if (vulNamenFn) vulNamenFn();
+    }
+    urls.forEach(function (url) {
+      var v = perUrl[url];
+      verzoek(url + "?actie=namen&sleutel=" + encodeURIComponent(v.sleutel || ""), { method: "GET" })
+        .then(function (r) {
+          if (r && r.ok && r.klas) {
+            Object.keys(r.klas).forEach(function (code) {
+              if (!vestigingMet(code)) return;
+              namenCache[code] = (r.klas[code] || []).map(String).filter(Boolean);
+            });
+            schrijf(NAMEN_KEY, JSON.stringify(namenCache));
+          }
+          klaar();
+        })
+        .catch(function (err) { console.error(err); klaar(); });
+    });
+  }
+
   function haalInstellingen(daarna) {
     if (!actief()) { if (daarna) daarna(); return; }
     // Loopt er al een ronde, dan is een tweede verspilling: Google krijgt
     // twee keer dezelfde vraag en de app moet twee keer wachten.
     if (instellingenBezig) { if (daarna) daarna(); return; }
     instellingenBezig = true;
+    if (vulNamenFn) vulNamenFn();
     var voorVestiging = vestiging.code;
     haal({ actie: "instellingen", sleutel: sleutelwoord() })
       .then(function (r) {
         instellingenBezig = false;
         // Intussen een andere school gekozen? Dan is dit antwoord verouderd.
         if (!vestiging || vestiging.code !== voorVestiging) return;
-        if (!r || !r.ok) { if (daarna) daarna(); return; }
+        if (!r || !r.ok) { if (vulNamenFn) vulNamenFn(); if (daarna) daarna(); return; }
         zetInstellingen(voorVestiging, r.instellingen, r.taken, r.klas);
         if (daarna) daarna();
       })
       .catch(function (err) {
         instellingenBezig = false;
+        if (vulNamenFn) vulNamenFn();
         // Onbereikbaar? Dan valt de app terug op js/data-klas.js en op de
         // standaardteksten. Geen foutmelding: de leerling kan hier niets aan
         // doen en de app werkt gewoon verder.
@@ -519,6 +588,10 @@
     klasServer = { code: code, namen: (nieuweKlas || []).map(function (l) {
       return typeof l === "string" ? l : String((l && l.naam) || "");
     }).filter(Boolean) };
+    if (klasServer.namen.length) {
+      namenCache[code] = klasServer.namen;
+      schrijf(NAMEN_KEY, JSON.stringify(namenCache));
+    }
     window.INSTELLINGEN = instellingen;
     zetTopbarLinks();
     if (vulNamenFn) vulNamenFn();
@@ -1164,6 +1237,11 @@
       var ruw = lees(AANMELD_KEY);
       if (ruw) aanmelding = JSON.parse(ruw);
     } catch (e) { aanmelding = null; }
+    try {
+      var ruwNamen = lees(NAMEN_KEY);
+      var bewaard = ruwNamen ? JSON.parse(ruwNamen) : null;
+      if (bewaard && typeof bewaard === "object") namenCache = bewaard;
+    } catch (e) { namenCache = {}; }
 
     // De vestiging van de vorige keer terughalen. Staat ze er niet meer in
     // config-koppeling.js, dan begint de leerling opnieuw met kiezen.
@@ -1191,6 +1269,7 @@
     // De instellingen (teksten, links, klaslijst, taken) horen bij de
     // vestiging en worden dus opgehaald zodra die bekend is — nog vóór de
     // leerling aangemeld is, want de namenlijst komt er ook uit.
+    haalNamen();
     haalInstellingen();
 
     // Feedback stil verversen als de leerling terugkomt naar dit tabblad.

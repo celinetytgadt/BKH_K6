@@ -211,6 +211,7 @@ vm.runInContext(CODE_GS, omgeving);
 /* ===================== nagemaakte server ===================== */
 
 const verzoeken = [];
+let serverVertraging = 0;   // ms: een trage opstart van het script nabootsen
 function server(url, opts) {
   const u = new URL(url);
   let r;
@@ -223,12 +224,13 @@ function server(url, opts) {
     verzoeken.push(JSON.parse(opts.body));
     r = omgeving.doPost({ postData: { contents: opts.body } });
   }
-  return Promise.resolve({ json: () => Promise.resolve(JSON.parse(r.tekst)) });
+  const antw = { json: () => Promise.resolve(JSON.parse(r.tekst)) };
+  return serverVertraging ? wacht(serverVertraging).then(() => antw) : Promise.resolve(antw);
 }
 
 /* ===================== de app in jsdom ===================== */
 
-async function start(map) {
+async function start(map, voorKoppeling) {
   map = map || APP;
   const html = fs.readFileSync(path.join(map, "index.html"), "utf8");
   const bronnen = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
@@ -259,6 +261,7 @@ async function start(map) {
   } else {
     dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
   }
+  if (voorKoppeling) voorKoppeling(dom);
   bronnen.filter((b) => /koppeling\.js$/.test(b)).forEach(laad);
 
   await new Promise((r) => setTimeout(r, 60));
@@ -305,6 +308,7 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   await wacht(60);
   const namen = [...d.getElementById("leerling-select").options].map((o) => o.value).filter(Boolean);
   check("enkel de leerlingen van SKW", namen.join("|") === "Mila", namen);
+  check("namen van alle scholen in één verzoek bij het openen", verzoeken.some((v) => v.actie === "namen" && !v.vestiging));
   check("verzoek vermeldt de vestiging", verzoeken.some((v) => v.actie === "instellingen" && v.vestiging === "SKW"), verzoeken.slice(-1));
   check("de mededeling/welkomsttekst van SKW komt mee", w.INSTELLINGEN && /Katelijne/.test(w.INSTELLINGEN.mededeling || w.INSTELLINGEN.welkomsttekst || ""), w.INSTELLINGEN);
 
@@ -498,6 +502,45 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("expertcode gevraagd per vestiging", /TW/.test(laatsteAlert), laatsteAlert);
   const onbekend = JSON.parse(omgeving.doGet({ parameter: { sleutel: "TEST", vestiging: "XYZ", actie: "instellingen" } }).tekst);
   check("onbekende vestiging geweigerd", onbekend.ok === false && onbekend.fout === "vestiging onbekend", onbekend);
+
+  console.log("\n9. De namenlijst staat snel klaar");
+  const alleNamen = JSON.parse(omgeving.doGet({ parameter: { sleutel: "TEST", actie: "namen" } }).tekst);
+  check("server geeft de namen per vestiging, zonder codes",
+    alleNamen.ok && alleNamen.klas.LEU.join("|") === "Lotte V." && alleNamen.klas.TW.join("|") === "Amal T." &&
+    !/\d{4}/.test(JSON.stringify(alleNamen)), alleNamen);
+  check("namen enkel met het sleutelwoord",
+    JSON.parse(omgeving.doGet({ parameter: { sleutel: "fout", actie: "namen" } }).tekst).ok === false);
+
+  serverVertraging = 300;
+  const dom2 = await start(APP);
+  const d2 = dom2.window.document;
+  const vest2 = d2.getElementById("vestiging-select");
+  vest2.value = "TW";
+  vest2.dispatchEvent(new dom2.window.Event("change"));
+  const sel2 = d2.getElementById("leerling-select");
+  check("tijdens het laden: 'Namen laden…' en geen vrij naamveld",
+    !sel2.hidden && sel2.disabled && /Namen laden/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden,
+    sel2.outerHTML);
+  await wacht(450);
+  check("daarna de namen van TW", !sel2.disabled && [...sel2.options].map((o) => o.value).filter(Boolean).join("|") === "Amal T.",
+    sel2.outerHTML);
+  const bewaard = JSON.parse(dom2.window.localStorage.getItem("boekhoudapp_k6_namen") || "{}");
+  check("de browser onthoudt de namen (zonder codes)", (bewaard.SKW || []).join("|") === "Mila|Nora" && !/\d{4}/.test(JSON.stringify(bewaard)), bewaard);
+
+  serverVertraging = 2000;
+  const dom3 = await start(APP, (dom) => dom.window.localStorage.setItem("boekhoudapp_k6_namen", JSON.stringify(bewaard)));
+  const d3 = dom3.window.document;
+  const vest3 = d3.getElementById("vestiging-select");
+  vest3.value = "SKW";
+  vest3.dispatchEvent(new dom3.window.Event("change"));
+  const sel3 = d3.getElementById("leerling-select");
+  check("tweede bezoek: namen meteen uit het geheugen", !sel3.disabled && [...sel3.options].map((o) => o.value).includes("Mila"), sel3.outerHTML);
+  sel3.value = "Mila";
+  d3.getElementById("leerling-code").value = "1234";
+  await wacht(2300);
+  check("verse lijst wist de gekozen naam en code niet", sel3.value === "Mila" && d3.getElementById("leerling-code").value === "1234",
+    [sel3.value, d3.getElementById("leerling-code").value]);
+  serverVertraging = 0;
 
   console.log("\n" + (fouten ? fouten + " FOUT(EN)" : "Alles in orde."));
   process.exit(fouten ? 1 : 0);

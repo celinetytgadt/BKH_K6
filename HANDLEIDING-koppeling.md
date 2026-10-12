@@ -137,4 +137,8 @@ leerling die ene verkoop weer openen om te remediëren.
   genereren*. Of via het tabblad Beheer in de app.
 - **Waar staan de werkbestanden?** **Boekhoudapp → Waar staan de
   werkbestanden?** toont de map en het aantal bestanden per vestiging.
+- **Namenlijst**: de app vraagt de namen van de drie vestigingen op zodra
+  ze opent (één verzoek, enkel namen, geen codes) en de browser onthoudt de
+  laatste lijst. Zo staat de keuzelijst meestal meteen klaar; anders staat
+  er even *Namen laden…*.
 - **Automatische test**: zie `test/LEESMIJ.md`.
