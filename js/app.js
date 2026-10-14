@@ -2769,6 +2769,17 @@
       document.getElementById("layout").classList.remove("tpanel-verborgen");
     });
 
+    // Het menu links inklappen. De keuze blijft bewaard in deze browser,
+    // zodat het menu bij een volgend bezoek niet opnieuw openspringt.
+    var MENU_KEY = "boekhoudapp_k6_menu_ingeklapt";
+    function zetMenuIngeklapt(dicht) {
+      document.getElementById("layout").classList.toggle("sidebar-verborgen", dicht);
+      try { if (dicht) localStorage.setItem(MENU_KEY, "1"); else localStorage.removeItem(MENU_KEY); } catch (e) {}
+    }
+    try { if (localStorage.getItem(MENU_KEY) === "1") document.getElementById("layout").classList.add("sidebar-verborgen"); } catch (e) {}
+    document.getElementById("sidebar-collapse").addEventListener("click", function () { zetMenuIngeklapt(true); });
+    document.getElementById("sidebar-heropen").addEventListener("click", function () { zetMenuIngeklapt(false); });
+
     // Topbar: leerlingnaam
     var naamInput = document.getElementById("leerling-naam-input");
     naamInput.addEventListener("keydown", function (e) { if (e.key === "Enter") naamInput.blur(); });
