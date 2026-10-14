@@ -54,8 +54,15 @@
 
 <div id="layout">
   <nav id="sidebar">
+    <button id="sidebar-collapse" type="button" title="Menu inklappen" aria-label="Menu inklappen">«</button>
     <div id="nav-links"></div>
   </nav>
+
+  <!-- Verschijnt enkel als het menu ingeklapt is: zo krijgt het
+       redeneerschema meer plaats en blijft het menu terug te halen. -->
+  <button id="sidebar-heropen" type="button" title="Menu terug tonen">
+    <span>Menu</span> »
+  </button>
 
   <main id="main-content">
     <div id="pagina-inhoud"></div>

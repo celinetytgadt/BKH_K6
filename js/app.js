@@ -48,10 +48,9 @@
     return isNaN(num) ? null : num;
   }
 
-  // Bedragen zonder overbodige ",00": in deze bundel wordt met hele euro's
-  // gewerkt, en "1.250,00" leest trager dan "1.250". Komt er toch een bedrag
-  // met centen voor, dan worden de twee decimalen wél getoond — anders zou
-  // er informatie verloren gaan.
+  // Bedragen met centen krijgen altijd twee decimalen ("1.234,50"); een
+  // rond bedrag blijft zonder overbodige ",00", want "1.250" leest sneller
+  // dan "1.250,00".
   function formatBedrag(num) {
     if (num === null || num === undefined || isNaN(num)) return "";
     var heelGetal = Math.abs(num - Math.round(num)) < 0.005;
@@ -2769,6 +2768,17 @@
     document.getElementById("tpanel-heropen").addEventListener("click", function () {
       document.getElementById("layout").classList.remove("tpanel-verborgen");
     });
+
+    // Het menu links inklappen. De keuze blijft bewaard in deze browser,
+    // zodat het menu bij een volgend bezoek niet opnieuw openspringt.
+    var MENU_KEY = "boekhoudapp_k6_menu_ingeklapt";
+    function zetMenuIngeklapt(dicht) {
+      document.getElementById("layout").classList.toggle("sidebar-verborgen", dicht);
+      try { if (dicht) localStorage.setItem(MENU_KEY, "1"); else localStorage.removeItem(MENU_KEY); } catch (e) {}
+    }
+    try { if (localStorage.getItem(MENU_KEY) === "1") document.getElementById("layout").classList.add("sidebar-verborgen"); } catch (e) {}
+    document.getElementById("sidebar-collapse").addEventListener("click", function () { zetMenuIngeklapt(true); });
+    document.getElementById("sidebar-heropen").addEventListener("click", function () { zetMenuIngeklapt(false); });
 
     // Topbar: leerlingnaam
     var naamInput = document.getElementById("leerling-naam-input");
