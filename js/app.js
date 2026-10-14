@@ -48,10 +48,9 @@
     return isNaN(num) ? null : num;
   }
 
-  // Bedragen zonder overbodige ",00": in deze bundel wordt met hele euro's
-  // gewerkt, en "1.250,00" leest trager dan "1.250". Komt er toch een bedrag
-  // met centen voor, dan worden de twee decimalen wél getoond — anders zou
-  // er informatie verloren gaan.
+  // Bedragen met centen krijgen altijd twee decimalen ("1.234,50"); een
+  // rond bedrag blijft zonder overbodige ",00", want "1.250" leest sneller
+  // dan "1.250,00".
   function formatBedrag(num) {
     if (num === null || num === undefined || isNaN(num)) return "";
     var heelGetal = Math.abs(num - Math.round(num)) < 0.005;

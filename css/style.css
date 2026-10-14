@@ -335,8 +335,10 @@ table.redeneerschema {
 
 /* Kolombreedtes. De omschrijving van de rekening en de redenering krijgen
    de meeste plaats (daar staat tekst in); A/P/K/O en D/C hebben aan een
-   enkele letter genoeg. */
-table.redeneerschema col.c-bedrag      { width: 9%; }
+   enkele letter genoeg. Het bedrag krijgt een vaste breedte: een bedrag
+   met centen als 58.711,05 moet ook op een smal scherm volledig leesbaar
+   blijven. */
+table.redeneerschema col.c-bedrag      { width: 92px; }
 table.redeneerschema col.c-redenering  { width: 24%; }
 table.redeneerschema col.c-apko        { width: 6.5%; }
 table.redeneerschema col.c-stijgtdaalt { width: 10%; }
@@ -372,7 +374,8 @@ table.redeneerschema select:disabled {
   background: #f0f2f3;
   color: var(--kleur-tekst-zacht);
 }
-td.kol-bedrag input { text-align: right; }
+td.kol-bedrag input,
+td.kol-bedrag .auto-veld { text-align: right; font-variant-numeric: tabular-nums; }
 td.kol-apko select,
 td.kol-dc select { padding-left: 3px; padding-right: 2px; text-align: center; }
 td.kol-verwijder { text-align: center; padding-left: 0; padding-right: 0; }
@@ -1235,8 +1238,11 @@ table.relatie-detail tfoot td.totaal-fout { color: var(--kleur-fout); }
 
 @media (max-width: 1100px) {
   table.redeneerschema { font-size: 12px; }
-  table.redeneerschema col.c-redenering { width: 21%; }
-  table.redeneerschema col.c-omschrijving { width: 26%; }
+  /* Het bedrag houdt zijn vaste breedte; de redenering en de omschrijving
+     staan plaats af, zodat het rekeningnummer leesbaar blijft. */
+  table.redeneerschema col.c-redenering { width: 17%; }
+  table.redeneerschema col.c-omschrijving { width: 22%; }
+  table.redeneerschema col.c-rekening { width: 21%; }
   table.redeneerschema col.c-stijgtdaalt { width: 11%; }
 }
 
