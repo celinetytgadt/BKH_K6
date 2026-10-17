@@ -92,6 +92,9 @@ const CATEGORIE_CONTROLES = {
 //                (uit het tabblad Klanten & leveranciers), zodat de leerling
 //                dat naast het saldo van 400000/440000 in het T-paneel kan
 //                leggen zonder van scherm te wisselen
+//   relatiesVoorRef  ref van een boeking (bv. "BB") — toont onder de vraag
+//                elke lijn van die boeking op een klanten- of
+//                leveranciersrekening, met de gekozen relatie en het bedrag
 //
 // De app toont bewust GEEN saldi bij een controle: dan valt er niets meer na
 // te kijken. De leerling zoekt zelf in het T-paneel met de filtertip.
@@ -110,7 +113,7 @@ const HANDMATIGE_CONTROLES = [
     categorie: "Beginbalans",
     vraag: "Heb je bij elke klant en elke leverancier op de beginbalans de juiste relatie gekozen?",
     toelichting: "Elke openstaande factuur van vorig jaar hoort bij een klant of leverancier. Boek ze elk op een eigen lijn, anders kan je ze later niet afpunten met de betaling.",
-    filterTip: "Filter in het T-paneel op 400000 en daarna op 440000.",
+    relatiesVoorRef: "BB",
   },
 
   /* ---------------- Aankopen ---------------- */
