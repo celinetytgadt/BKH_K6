@@ -1067,9 +1067,36 @@
       // Vroeger stond er per verrichting één enkele beoordeling in plaats van
       // een lijst met alle ronden. Oud bewaard werk mag daar niet op vastlopen.
       Object.keys(bewaard).forEach(function (ref) {
-        feedback[ref] = Array.isArray(bewaard[ref]) ? bewaard[ref] : [bewaard[ref]];
+        feedback[ref] = sorteerNieuwsteEerst(Array.isArray(bewaard[ref]) ? bewaard[ref] : [bewaard[ref]]);
       });
     } catch (e) { feedback = {}; }
+  }
+
+  /* Nieuwste ronde eerst. De server sorteert ook al, maar daar niet blind op
+     vertrouwen: de eerste ronde bepaalt de kleur in het menu en of een
+     verrichting op slot gaat. Staat ze verkeerd, dan blijft een verbeterde
+     boeking op "Te remediëren" staan.
+     Volgorde: tijdstip van de inzending, dan de rij in de Sheet (lager =
+     later ingediend), en anders de volgorde waarin ze binnenkwamen — het
+     tabblad Inzendingen groeit van boven naar onder, dus later = nieuwer. */
+  function sorteerNieuwsteEerst(lijst) {
+    return lijst
+      .map(function (f, i) { return { f: f, i: i, t: tijdVan(f) }; })
+      .sort(function (a, b) {
+        if (a.t !== b.t) return b.t - a.t;
+        var ra = Number(a.f.rij) || 0, rb = Number(b.f.rij) || 0;
+        if (ra !== rb) return rb - ra;
+        return b.i - a.i;
+      })
+      .map(function (x) { return x.f; });
+  }
+
+  function tijdVan(f) {
+    var t = Number(f && f.tijdstip);
+    if (t > 0) return t;
+    // Oudere antwoorden hadden enkel de datum, als d/MM/yyyy.
+    var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String((f && f.ingediend) || "").trim());
+    return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0;
   }
 
   function haalFeedback(stil) {
@@ -1097,8 +1124,9 @@
         var nieuw = {};
         (r.feedback || []).forEach(function (f) {
           if (!nieuw[f.ref]) nieuw[f.ref] = [];
-          nieuw[f.ref].push(f);   // de server stuurt ze al nieuwste eerst
+          nieuw[f.ref].push(f);
         });
+        Object.keys(nieuw).forEach(function (ref) { nieuw[ref] = sorteerNieuwsteEerst(nieuw[ref]); });
         feedback = nieuw;
         schrijf(feedbackKey(), JSON.stringify(feedback));
         APP.renderAlles();

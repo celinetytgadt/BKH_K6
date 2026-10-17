@@ -1146,6 +1146,35 @@
       "<tfoot><tr><td>Totaal nog open</td><td>" + formatBedrag(totaal) + "</td></tr></tfoot></table>";
   }
 
+  // Alle lijnen van één boeking (bv. BB) op een klanten- of
+  // leveranciersrekening, met de relatie die de leerling erbij koos. In het
+  // T-paneel zie je enkel bedragen, niet bij wie ze horen.
+  function htmlControleRelatiesInBoeking(ref) {
+    var boeking = state.boekingen[ref];
+    var lijnen = [];
+    ((boeking && boeking.rows) || []).forEach(function (row) {
+      var soort = relatieVeldVoorRekening(row.rekening);
+      if (!soort) return;
+      lijnen.push({ soort: soort, nr: String(marBij(row.rekening).nr), row: row });
+    });
+    if (!lijnen.length) {
+      return '<p class="controle-toelichting">Er staat nog geen lijn op 400000 of 440000 in je boeking ' + escapeAttr(ref) + ".</p>";
+    }
+    // Eerst de klanten, dan de leveranciers; binnen elk de volgorde van de boeking.
+    lijnen.sort(function (a, b) { return (a.soort === b.soort) ? 0 : (a.soort === "klanten" ? -1 : 1); });
+    var rijen = lijnen.map(function (l) {
+      var relatie = String(l.row.relatie || "").trim();
+      var bedrag = parseBedrag(l.row.bedrag);
+      return "<tr><td>" + escapeAttr(l.nr) + "</td>" +
+        "<td>" + (l.soort === "klanten" ? "klant" : "leverancier") + "</td>" +
+        "<td>" + (relatie ? escapeAttr(relatie) : "<em>— niets gekozen —</em>") + "</td>" +
+        "<td>" + (bedrag === null ? "" : formatBedrag(bedrag) + " " + escapeAttr(l.row.dc || "")) + "</td></tr>";
+    }).join("");
+    return '<table class="relatie-overzicht controle-relatie-tabel controle-relatie-lijnen"><thead><tr>' +
+      "<th>Rekening</th><th>Soort</th><th>Gekozen relatie</th><th>Bedrag</th></tr></thead>" +
+      "<tbody>" + rijen + "</tbody></table>";
+  }
+
   // Eén afvinkbare controle. Wordt zowel op de controlepagina van een
   // categorie als op de eindcontrole gebruikt.
   function htmlControleRij(c) {
@@ -1161,6 +1190,7 @@
     // 400000/440000 in het T-paneel kan leggen zonder van scherm te
     // wisselen. Deze cijfers komen uit hun eigen boekingen.
     if (c.relatieSoort) html += htmlControleRelatieTabel(c.relatieSoort);
+    if (c.relatiesVoorRef) html += htmlControleRelatiesInBoeking(c.relatiesVoorRef);
     html += "</div>";
     html += "</div>";
     return html;

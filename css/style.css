@@ -1399,6 +1399,9 @@ table.relatie-detail.afpunt-actief tbody tr[data-role="afpunt-doel"]:hover { bac
 
 /* Het compacte tabelletje bij de zelfcontrole van 400000/440000. */
 .controle-relatie-tabel { max-width: 420px; margin-top: 8px; }
+.controle-relatie-tabel.controle-relatie-lijnen { max-width: 600px; }
+table.relatie-overzicht.controle-relatie-lijnen th, table.relatie-overzicht.controle-relatie-lijnen td { text-align: left; }
+table.relatie-overzicht.controle-relatie-lijnen th:last-child, table.relatie-overzicht.controle-relatie-lijnen td:last-child { text-align: right; white-space: nowrap; }
 .controle-relatie-tabel tfoot td {
   border-top: 2px solid var(--kleur-rand);
   border-bottom: none;
