@@ -140,6 +140,9 @@
   function schrijf(key, waarde) {
     try { localStorage.setItem(key, waarde); } catch (e) { /* vol of geblokkeerd */ }
   }
+  function wis(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* geblokkeerd */ }
+  }
 
   function datumTekst(iso) {
     if (!iso) return "onbekend";
@@ -400,6 +403,7 @@
     // erbij, zodat ze op een gedeelde computer niet in elkaars werk komen.
     if (APP.zetOpslagPrefix) APP.zetOpslagPrefix(aanmelding.vestiging || "");
     APP.laadStudent(aanmelding.naam);
+    toonUitlogKnop();
     laadFeedbackUitBrowser();
     APP.renderAlles();
 
@@ -432,6 +436,55 @@
       });
 
     if (cfg.feedbackBijOpstart) haalFeedback(true);
+  }
+
+  function toonUitlogKnop() {
+    var knop = document.getElementById("btn-uitloggen");
+    if (knop) knop.hidden = !aanmelding;
+  }
+
+  /* Uitloggen, voor een gedeelde computer in de klas. Eerst gaat het werk
+     naar de server; pas als dat gelukt is, wordt het uit deze browser
+     gewist. Lukt bewaren niet, dan blijft alles staan: liever aangemeld
+     blijven dan werk kwijtspelen. */
+  function meldAf() {
+    if (!aanmelding) return;
+    var naam = aanmelding.naam;
+    var venster = maakModal("Uitloggen",
+      '<div class="modal-body"><p>Je werk wordt eerst op de server bewaard. Daarna wordt alles van <strong>' + esc(naam) +
+      "</strong> uit deze browser gewist, zodat de volgende leerling er niet aan kan.</p>" +
+      '<p class="keuze-nota">Je kan je later gewoon opnieuw aanmelden met je naam en je code: je werk staat dan weer klaar.</p></div>' +
+      '<div class="modal-voet">' +
+      '<button type="button" class="btn-secundair" data-role="uitlog-terug">Annuleren</button>' +
+      '<button type="button" class="btn-primair" data-role="uitlog-ja">Bewaren en uitloggen</button></div>');
+    venster.el.querySelector('[data-role="uitlog-terug"]').addEventListener("click", venster.sluit);
+    venster.el.querySelector('[data-role="uitlog-ja"]').addEventListener("click", function () {
+      zetModalInhoud(venster.el, htmlBezig("Even geduld, je werk wordt bewaard…"));
+      var bewaren = actief() ? bewaarNaarServer(true) : Promise.resolve(true);
+      bewaren.then(function (ok) {
+        if (!ok) {
+          zetModalInhoud(venster.el, htmlMelding("fout", "Niet uitgelogd",
+            "Je werk kon niet op de server bewaard worden, dus het blijft in deze browser staan en je bent nog aangemeld. " +
+            "Controleer je internetverbinding en probeer het opnieuw."));
+          return;
+        }
+        wis(feedbackKey());
+        wis(AANMELD_KEY);
+        aanmelding = null;
+        feedback = {};
+        teBewaren = false;
+        if (window.BEHEER && window.BEHEER.vergrendel) window.BEHEER.vergrendel();
+        APP.vergeetStudent();
+        var select = document.getElementById("leerling-select");
+        var codeVeld = document.getElementById("leerling-code");
+        if (select) select.value = "";
+        if (codeVeld) codeVeld.value = "";
+        toonUitlogKnop();
+        status("Uitgelogd.", "ok");
+        zetModalInhoud(venster.el, htmlMelding("ok", "Uitgelogd",
+          "Je werk staat veilig op de server en is gewist uit deze browser."));
+      });
+    });
   }
 
   function neemOver(r) {
@@ -1286,6 +1339,8 @@
     var btnFeedback = document.getElementById("btn-feedback");
     if (btnIndienen) btnIndienen.addEventListener("click", openIndienVenster);
     if (btnFeedback) btnFeedback.addEventListener("click", function () { haalFeedback(false); });
+    var btnUitloggen = document.getElementById("btn-uitloggen");
+    if (btnUitloggen) btnUitloggen.addEventListener("click", meldAf);
 
     if (!ingesteld()) {
       // Geen koppeling ingesteld: de app werkt zoals vroeger, volledig lokaal.

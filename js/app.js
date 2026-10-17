@@ -2884,6 +2884,21 @@
       var veld = document.getElementById("leerling-naam-input");
       if (veld) veld.value = naam || "";
     },
+    // Bij het uitloggen: het werk van deze leerling uit deze browser wissen
+    // en met een leeg scherm verder. Enkel aanroepen als het werk veilig op
+    // de server staat.
+    vergeetStudent: function () {
+      try {
+        if (state.student) localStorage.removeItem(storageKeyVoor(state.student));
+        localStorage.removeItem(LAATSTE_LEERLING_KEY);
+      } catch (e) { /* geblokkeerde opslag: dan stond er ook niets */ }
+      state = maakLegeState("");
+      laatstBewaardOm = null;
+      var veld = document.getElementById("leerling-naam-input");
+      if (veld) veld.value = "";
+      uiState.huidigePagina = { type: "start" };
+      renderAlles();
+    },
     saveState: saveState,
     renderAlles: renderAlles,
     marBij: marBij,
