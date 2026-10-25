@@ -598,6 +598,36 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("het werk op de server is niet overschreven",
     (gedeeld.bestanden.find((b) => b.naam === "werk_SKW_mila.json") || {}).inhoud === werkVoor);
 
+  console.log("\n13. Vergeten op Boeken te drukken");
+  // Mila (w) is nog aangemeld. AK04 begonnen maar niet geboekt; de rest van
+  // de aankopen ofwel geboekt ofwel leeg.
+  const stK = w.APP.getState();
+  stK.boekingen.AK04 = { geboekt: false, rows: [{ auto: true, rekening: "440000", relatie: "", bedrag: "", dc: "" },
+    { bedrag: "50", rekening: "604000", dc: "D", relatie: "", redenering: "", apko: "", stijgtDaalt: "" }] };
+  w.APP.setState(JSON.parse(JSON.stringify(stK)), "Mila");
+  w.APP.saveState();
+  w.APP.renderAlles();
+  const catBol = (cat) => d.querySelector('[data-page-type="categorie"][data-page-cat="' + cat + '"] .status-bolletje').className;
+  check("menu: open oranje ringetje bij Aankopen", /begonnen/.test(catBol("Aankopen")), catBol("Aankopen"));
+  d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
+  await wacht(30);
+  const statusAK04 = d.querySelector("#blok-AK04 .opdracht-status").textContent;
+  check("label bij het schema: nog niet geboekt", statusAK04 === "nog niet geboekt", statusAK04);
+  check("niet klaar: geen herinnering bij AK04", !d.querySelector("#blok-AK04 .boeken-herinnering"));
+  d.querySelectorAll(".koppeling-overlay").forEach((o) => o.remove());
+  d.getElementById("btn-indienen").click();
+  await wacht(30);
+  let vK = d.querySelector(".koppeling-overlay");
+  const vinkK = (naam) => { const v = vK.querySelector('[data-cat="' + naam + '"]'); v.checked = true; v.dispatchEvent(new w.Event("change")); };
+  vinkK("Aankopen");
+  vK.querySelector("#btn-indienen-bevestig").click();
+  await wacht(30);
+  check("Aankopen indienen: melding met AK04", !!vK.querySelector('[data-role="naar-stuk"][data-ref="AK04"]'), vK.textContent.slice(0, 200));
+  vK.querySelector('[data-role="naar-stuk"][data-ref="AK04"]').click();
+  await wacht(30);
+  check("klik: venster dicht, Aankopen open en AK04 opengeklapt",
+    !d.querySelector(".koppeling-overlay") && d.getElementById("blok-AK04") && d.getElementById("blok-AK04").open);
+
   console.log("\n" + (fouten ? fouten + " FOUT(EN)" : "Alles in orde."));
   process.exit(fouten ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
