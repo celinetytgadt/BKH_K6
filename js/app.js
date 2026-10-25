@@ -108,8 +108,15 @@
      1. State: aanmaken, laden, bewaren
      ======================================================================== */
 
-  var LAATSTE_LEERLING_KEY = "boekhoudapp_laatste_leerling";
-  var PREFIX_KEY = "boekhoudapp_vestiging";
+  /* Alle apps op celinetytgadt.github.io delen hetzelfde geheugen in de
+     browser (localStorage). Daarom begint elke sleutel van deze app met haar
+     eigen voorvoegsel (OPSLAG_APP in config-koppeling.js). Vroeger gebruikte
+     Kern 6 "boekhoudapp", net als de app van Kern 8 (MetWear): dan las de
+     ene app de aanmelding, het werk en de feedback van de andere. De oude
+     sleutels blijven onaangeroerd: die zijn van Kern 8. */
+  var APP_SLEUTEL = (typeof OPSLAG_APP !== "undefined" && OPSLAG_APP) ? OPSLAG_APP : "bkhk6";
+  var LAATSTE_LEERLING_KEY = APP_SLEUTEL + "_laatste_leerling";
+  var PREFIX_KEY = APP_SLEUTEL + "_vestiging";
 
   /* De code van de vestiging (LEU, SKW, TW) hoort mee in de bewaarsleutel:
      twee scholen kunnen een gelijknamige leerling hebben, en op een gedeelde
@@ -120,7 +127,7 @@
   try { opslagPrefix = localStorage.getItem(PREFIX_KEY) || ""; } catch (e) { opslagPrefix = ""; }
 
   function storageKeyVoor(student) {
-    return "boekhoudapp_data_" + (opslagPrefix ? opslagPrefix + "_" : "") + slug(student);
+    return APP_SLEUTEL + "_data_" + (opslagPrefix ? opslagPrefix + "_" : "") + slug(student);
   }
 
   function maakLegeRij() {
@@ -798,7 +805,7 @@
       "<th>Bedrag</th>" +
       '<th title="Denkhulp — niet verplicht">Redenering</th>' +
       '<th title="Denkhulp — niet verplicht">A/P/K/O</th>' +
-      '<th title="Denkhulp — niet verplicht">Stijgt/daalt</th>' +
+      '<th title="Denkhulp — niet verplicht">Stijgt/<wbr>daalt</th>' +
       "<th>Rekeningnr.</th><th>Omschrijving</th><th>D/C</th><th></th>" +
       "</tr></thead><tbody>";
     boeking.rows.forEach(function (row, idx) { html += htmlRedeneerschemaRij(ref, row, idx, geboekt, inOrde); });
@@ -836,7 +843,13 @@
       html += '<button type="button" class="btn-heropenen" data-scope="' + escapeAttr(ref) + '" data-role="heropenen">Heropenen om te wijzigen</button>';
     } else {
       html += '<button type="button" class="btn-boeken" data-scope="' + escapeAttr(ref) + '" data-role="boeken" ' + (klaar ? "" : "disabled") + ">Boeken</button>";
-      if (!klaar) {
+      // Een schema waar nog niets in staat, krijgt nog geen lijst met wat er
+      // ontbreekt: die gele kaders vóór de leerling iets deed, zijn enkel
+      // ruis (op een pagina met veel schema's onder elkaar zelfs veel ruis).
+      var begonnen = boeking.rows.some(function (r) {
+        return r.auto ? !!String(r.relatie || "").trim() : !rijLeeg(r);
+      });
+      if (!klaar && begonnen) {
         // Concreet zeggen wát er nog ontbreekt, per lijn. Anders blijft de
         // knop grijs zonder dat de leerling weet waarom.
         var punten = [];
@@ -1085,6 +1098,14 @@
     var tips = [];
     items.forEach(function (o) { if (o.tip && tips.indexOf(o.tip) === -1) tips.push(o.tip); });
     tips.forEach(function (t) { html += '<div class="paneel paneel-tip"><p>' + escapeAttr(t) + "</p></div>"; });
+    // Vooraf zeggen dat de verkopen op slot gaan zodra ze allemaal geboekt
+    // zijn (zie categorieVergrendeld). Anders ontdekt de leerling dat pas als
+    // ze bij de controle nog iets wil verbeteren.
+    if (heeftAutomatisch() && cat === AUTOMATISCH_NA_CATEGORIE && !state.automatischVrij) {
+      html += '<div class="paneel paneel-tip paneel-let-op"><p><strong>Let op:</strong> zodra al je ' +
+        escapeAttr(cat.toLowerCase()) + " geboekt zijn, gaan ze op slot en verschijnen de automatisch geboekte facturen. " +
+        "Kijk ze dus goed na vóór je de laatste boekt. Daarna kan je ze pas weer openen als je vakexpert er feedback op geeft.</p></div>";
+    }
 
     html += '<div class="opdracht-acties">' +
       '<button type="button" class="btn-secundair" data-role="alles-open" data-cat="' + escapeAttr(cat) + '">Alles openklappen</button> ' +
@@ -2801,7 +2822,7 @@
 
     // Het menu links inklappen. De keuze blijft bewaard in deze browser,
     // zodat het menu bij een volgend bezoek niet opnieuw openspringt.
-    var MENU_KEY = "boekhoudapp_k6_menu_ingeklapt";
+    var MENU_KEY = APP_SLEUTEL + "_menu_ingeklapt";
     function zetMenuIngeklapt(dicht) {
       document.getElementById("layout").classList.toggle("sidebar-verborgen", dicht);
       try { if (dicht) localStorage.setItem(MENU_KEY, "1"); else localStorage.removeItem(MENU_KEY); } catch (e) {}
@@ -2884,7 +2905,7 @@
       var veld = document.getElementById("leerling-naam-input");
       if (veld) veld.value = naam || "";
     },
-    // Bij het uitloggen: het werk van deze leerling uit deze browser wissen
+    // Bij het afmelden: het werk van deze leerling uit deze browser wissen
     // en met een leeg scherm verder. Enkel aanroepen als het werk veilig op
     // de server staat.
     vergeetStudent: function () {
@@ -2907,6 +2928,12 @@
     slug: slug,
     opmaakTekst: opmaakTekst,
     huidigePagina: function () { return uiState.huidigePagina.type; },
+    // Voor het indienen: heeft elke rubriek met een saldo een plaats op de
+    // eindbalans? Zo niet, dan is die nog niet af en gaat ze niet mee.
+    eindbalansVolledig: function () {
+      var kaarten = balansKaarten();
+      return kaarten.length > 0 && kaarten.every(function (k) { return !!state.eindbalans[k.id]; });
+    },
   };
 
   document.addEventListener("DOMContentLoaded", init);

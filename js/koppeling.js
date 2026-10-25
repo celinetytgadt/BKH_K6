@@ -41,12 +41,14 @@
   // De gekozen vestiging (een object uit de lijst hierboven).
   var vestiging = vestigingen.length === 1 ? vestigingen[0] : null;
 
-  var AANMELD_KEY = "boekhoudapp_aanmelding";
+  // Eigen voorvoegsel per app: zie OPSLAG_APP in config-koppeling.js.
+  var APP_SLEUTEL = (typeof OPSLAG_APP !== "undefined" && OPSLAG_APP) ? OPSLAG_APP : "bkhk6";
+  var AANMELD_KEY = APP_SLEUTEL + "_aanmelding";
   // De laatst gekende namenlijsten van alle vestigingen (enkel namen, geen
   // codes). Zo staat de keuzelijst er meteen bij het openen van de app,
   // terwijl op de achtergrond de verse lijst opgehaald wordt.
-  var NAMEN_KEY = "boekhoudapp_k6_namen";
-  var FEEDBACK_KEY_PREFIX = "boekhoudapp_feedback_";
+  var NAMEN_KEY = APP_SLEUTEL + "_namen";
+  var FEEDBACK_KEY_PREFIX = APP_SLEUTEL + "_feedback_";
 
   // Wat de vakexpert als "in orde" aanduidt, gaat op slot: het wordt niet
   // meer meegestuurd bij een volgende inzending. Deze tekst moet exact
@@ -55,6 +57,8 @@
 
   // Aanmelding van deze browser: { vestiging, naam, code }
   var aanmelding = null;
+  // Stand van het werk in de browser bij het aanmelden (zie naAanmelding).
+  var lokaalBijAanmelding = null;
   // Feedback per verrichting, nieuwste eerst:
   // { REF: [ { beoordeling, feedback, ingediend }, … ] }
   var feedback = {};
@@ -403,7 +407,13 @@
     // erbij, zodat ze op een gedeelde computer niet in elkaars werk komen.
     if (APP.zetOpslagPrefix) APP.zetOpslagPrefix(aanmelding.vestiging || "");
     APP.laadStudent(aanmelding.naam);
-    toonUitlogKnop();
+    // Hoe het werk in deze browser eruitzag op het moment van aanmelden. Het
+    // antwoord van Google kan seconden op zich laten wachten; typt de
+    // leerling intussen al iets, dan is de lokale versie plots "nieuwer" en
+    // zou ze het volledige werk op de Drive overschrijven. Daarom wordt
+    // vergeleken met deze momentopname, niet met de stand bij het antwoord.
+    lokaalBijAanmelding = { leeg: !Object.keys(APP.getState().boekingen || {}).length, gewijzigd: APP.getState().gewijzigd || null };
+    toonAfmeldKnop();
     laadFeedbackUitBrowser();
     APP.renderAlles();
 
@@ -414,9 +424,8 @@
         // en "Aangemeld." blijft staan.
         if (!r.gevonden) { startAutoBewaren(); return; }
 
-        var lokaal = APP.getState();
-        var lokaalLeeg = !Object.keys(lokaal.boekingen || {}).length;
-        var lokaalGewijzigd = lokaal.gewijzigd || null;
+        var lokaalLeeg = lokaalBijAanmelding.leeg;
+        var lokaalGewijzigd = lokaalBijAanmelding.gewijzigd;
 
         if (lokaalLeeg) { neemOver(r); return; }
         if (lokaalGewijzigd && r.gewijzigd && new Date(lokaalGewijzigd) >= new Date(r.gewijzigd)) {
@@ -438,32 +447,32 @@
     if (cfg.feedbackBijOpstart) haalFeedback(true);
   }
 
-  function toonUitlogKnop() {
-    var knop = document.getElementById("btn-uitloggen");
+  function toonAfmeldKnop() {
+    var knop = document.getElementById("btn-afmelden");
     if (knop) knop.hidden = !aanmelding;
   }
 
-  /* Uitloggen, voor een gedeelde computer in de klas. Eerst gaat het werk
+  /* Afmelden, voor een gedeelde computer in de klas. Eerst gaat het werk
      naar de server; pas als dat gelukt is, wordt het uit deze browser
      gewist. Lukt bewaren niet, dan blijft alles staan: liever aangemeld
      blijven dan werk kwijtspelen. */
   function meldAf() {
     if (!aanmelding) return;
     var naam = aanmelding.naam;
-    var venster = maakModal("Uitloggen",
+    var venster = maakModal("Afmelden",
       '<div class="modal-body"><p>Je werk wordt eerst op de server bewaard. Daarna wordt alles van <strong>' + esc(naam) +
       "</strong> uit deze browser gewist, zodat de volgende leerling er niet aan kan.</p>" +
       '<p class="keuze-nota">Je kan je later gewoon opnieuw aanmelden met je naam en je code: je werk staat dan weer klaar.</p></div>' +
       '<div class="modal-voet">' +
-      '<button type="button" class="btn-secundair" data-role="uitlog-terug">Annuleren</button>' +
-      '<button type="button" class="btn-primair" data-role="uitlog-ja">Bewaren en uitloggen</button></div>');
-    venster.el.querySelector('[data-role="uitlog-terug"]').addEventListener("click", venster.sluit);
-    venster.el.querySelector('[data-role="uitlog-ja"]').addEventListener("click", function () {
+      '<button type="button" class="btn-secundair" data-role="afmeld-terug">Annuleren</button>' +
+      '<button type="button" class="btn-primair" data-role="afmeld-ja">Bewaren en afmelden</button></div>');
+    venster.el.querySelector('[data-role="afmeld-terug"]').addEventListener("click", venster.sluit);
+    venster.el.querySelector('[data-role="afmeld-ja"]').addEventListener("click", function () {
       zetModalInhoud(venster.el, htmlBezig("Even geduld, je werk wordt bewaard…"));
       var bewaren = actief() ? bewaarNaarServer(true) : Promise.resolve(true);
       bewaren.then(function (ok) {
         if (!ok) {
-          zetModalInhoud(venster.el, htmlMelding("fout", "Niet uitgelogd",
+          zetModalInhoud(venster.el, htmlMelding("fout", "Niet afgemeld",
             "Je werk kon niet op de server bewaard worden, dus het blijft in deze browser staan en je bent nog aangemeld. " +
             "Controleer je internetverbinding en probeer het opnieuw."));
           return;
@@ -479,9 +488,9 @@
         var codeVeld = document.getElementById("leerling-code");
         if (select) select.value = "";
         if (codeVeld) codeVeld.value = "";
-        toonUitlogKnop();
-        status("Uitgelogd.", "ok");
-        zetModalInhoud(venster.el, htmlMelding("ok", "Uitgelogd",
+        toonAfmeldKnop();
+        status("Afgemeld.", "ok");
+        zetModalInhoud(venster.el, htmlMelding("ok", "Afgemeld",
           "Je werk staat veilig op de server en is gewist uit deze browser."));
       });
     });
@@ -728,7 +737,9 @@
   function maakCategorie(naam, refs, geboekt, telRefs) {
     // Verrichtingen die al in orde bevonden zijn, gaan niet meer mee. Zo
     // hoeft de vakexpert niet telkens hetzelfde opnieuw na te kijken.
-    var teSturen = refs.filter(function (r) { return !isInOrde(r); });
+    // Wat nog niet afgerond is (niet geboekt, half ingevuld), gaat ook niet
+    // mee: de vakexpert krijgt enkel wat de leerling zelf af vond.
+    var teSturen = refs.filter(function (r) { return !isInOrde(r) && isAfgerond(r); });
     var stand = typeof window.controleStandVoor === "function"
       ? window.controleStandVoor(naam)
       : { totaal: 0, af: 0, ok: true };
@@ -741,6 +752,13 @@
       refs: teSturen,
       controles: stand,
     };
+  }
+
+  // Afgerond = geboekt (een verrichting) of volledig ingevuld (de open
+  // vragen, de berekening van de resultaatverwerking, de eindbalans).
+  function isAfgerond(ref) {
+    var st = maakItem(ref, "").status;
+    return st === "geboekt" || st === "ingevuld";
   }
 
   function categorieOverzicht() {
@@ -824,8 +842,8 @@
           "</label>";
       }).join("") +
       "</div>" +
-      '<p class="keuze-nota">Wat je nog niet geboekt hebt, gaat mee als <em>onafgewerkt</em>: zo ziet je ' +
-      "vakexpert waar je vastloopt. Wat al in orde is, gaat niet meer mee.</p>" +
+      '<p class="keuze-nota">Enkel wat je geboekt of volledig ingevuld hebt, gaat mee. ' +
+      "Wat nog niet af is, of al in orde bevonden werd, blijft hier.</p>" +
       "</div>" +
       '<div class="modal-voet">' +
       '<button type="button" id="btn-indienen-bevestig" class="btn-primair" disabled>Indienen</button>' +
@@ -928,7 +946,7 @@
 
     if (!items.length) {
       zetModalInhoud(venster, htmlMelding("info", "Niets te versturen",
-        "In de categorieën die je aanvinkte staat niets meer dat nagekeken moet worden."));
+        "In de categorieën die je aanvinkte staat niets dat af is en nog nagekeken moet worden."));
       return;
     }
 
@@ -1058,7 +1076,7 @@
       ref: "RESULTAATVERWERKING",
       categorie: categorie,
       titel: "Resultaatverwerking",
-      status: velden.length ? "ingevuld" : "niet begonnen",
+      status: velden.length === 5 ? "ingevuld" : (velden.length ? "onafgewerkt" : "niet begonnen"),
       boeking: velden.map(function (v) { return v[0] + ": " + v[1]; }).join("\n"),
       lijnen: velden.map(function (v) { return { redenering: v[0], bedrag: v[1] }; }),
     };
@@ -1081,7 +1099,8 @@
       ref: "EINDBALANS",
       categorie: categorie,
       titel: "Eindbalans",
-      status: stukken.length ? "ingevuld" : "niet begonnen",
+      // Pas ingevuld als elke rubriek een plaats kreeg.
+      status: stukken.length ? (APP.eindbalansVolledig && !APP.eindbalansVolledig() ? "onafgewerkt" : "ingevuld") : "niet begonnen",
       boeking: stukken.join("\n"),
       lijnen: Object.keys(perVak).map(function (vak) {
         return { rekening: namen[vak] || vak, redenering: perVak[vak].sort().join(", ") };
@@ -1339,8 +1358,8 @@
     var btnFeedback = document.getElementById("btn-feedback");
     if (btnIndienen) btnIndienen.addEventListener("click", openIndienVenster);
     if (btnFeedback) btnFeedback.addEventListener("click", function () { haalFeedback(false); });
-    var btnUitloggen = document.getElementById("btn-uitloggen");
-    if (btnUitloggen) btnUitloggen.addEventListener("click", meldAf);
+    var btnAfmelden = document.getElementById("btn-afmelden");
+    if (btnAfmelden) btnAfmelden.addEventListener("click", meldAf);
 
     if (!ingesteld()) {
       // Geen koppeling ingesteld: de app werkt zoals vroeger, volledig lokaal.

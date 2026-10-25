@@ -28,6 +28,15 @@ Gebouwd op de app van Kern 8 (repo `boekhouding_DeMet`), met deze verschillen:
   schoolnummers 411100, 411200, 451100, 451200 en 704000.
 - **Eén Google Sheet en één script voor de drie vestigingen**, met tabbladen
   per vestiging. Zie `HANDLEIDING-koppeling.md`.
+- **Eigen opslag in de browser** (`OPSLAG_APP = "bkhk6"` in
+  `js/config-koppeling.js`): aanmelding, werk en feedback staan los van de
+  app van Kern 8, die op hetzelfde adres (`celinetytgadt.github.io`) draait.
+- **Indienen**: enkel wat afgerond is (geboekt, of volledig ingevuld) gaat
+  naar de Sheet. Wat in orde is, gaat niet meer mee.
+- **Afmelden** (titelbalk): eerst gaat het werk naar de Drive, daarna wordt
+  alles van die leerling uit de browser gewist — voor gedeelde computers.
+- **Versienummer** achter de scripts in `index.html` (`?v=…`): verander het
+  bij elke update, dan halen de browsers meteen alle nieuwe bestanden op.
 
 ## Indeling
 
