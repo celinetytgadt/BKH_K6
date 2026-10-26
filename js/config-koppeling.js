@@ -12,6 +12,14 @@
 // Eén vestiging? Laat er dan gewoon één in de lijst staan. De keuzelijst
 // verdwijnt dan vanzelf uit de app.
 
+// Het voorvoegsel voor alles wat deze app in de browser onthoudt (aanmelding,
+// werk, feedback, namenlijst). Alle apps op celinetytgadt.github.io delen dat
+// geheugen; met een eigen woord leest deze app nooit iets van de app van
+// Kern 8 (die "boekhoudapp" gebruikt) of van een andere app. Elke app moet
+// hier een ander woord hebben. Niet meer wijzigen: dan moet iedereen zich
+// opnieuw aanmelden.
+const OPSLAG_APP = "bkhk6";
+
 // De URL die Google geeft na "Implementeren → Nieuwe implementatie →
 // Web-app". Ze eindigt op /exec. Blijft ze leeg, dan werkt de app enkel
 // met de opslag in de browser (niets bewaren op de Drive, niets indienen).

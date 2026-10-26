@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20261025b">
 </head>
 <body>
 
@@ -44,7 +44,7 @@
     <button id="btn-feedback" type="button" class="btn-icoon" title="Feedback nu opnieuw ophalen" aria-label="Feedback nu opnieuw ophalen">↻</button>
     <!-- Op een gedeelde computer: het werk eerst op de server bewaren en
          daarna alles van deze leerling uit de browser wissen. -->
-    <button id="btn-uitloggen" type="button" hidden title="Je werk bewaren en afmelden op deze computer">Uitloggen</button>
+    <button id="btn-afmelden" type="button" hidden title="Je werk bewaren en afmelden op deze computer">Afmelden</button>
   </div>
   <button id="btn-nav-toggle" type="button" aria-label="Menu">☰</button>
   <button id="btn-tpanel-toggle" type="button" aria-label="T-rekeningen">T</button>
@@ -149,21 +149,24 @@
   </div>
 </div>
 
-<script src="js/mar.js"></script>
-<script src="js/data-mar-indeling.js"></script>
-<script src="js/data-opdrachten.js"></script>
-<script src="js/data-relaties.js"></script>
-<script src="js/data-automatisch.js"></script>
-<script src="js/data-controles.js"></script>
-<script src="js/data-balans.js"></script>
-<script src="js/data-info.js"></script>
-<script src="js/config-koppeling.js"></script>
-<script src="js/data-klas.js"></script>
-<script src="js/app.js"></script>
+<!-- Het getal achter ?v= is de versie. Verander het bij elke update (bv. de
+     datum): dan haalt elke browser meteen alle nieuwe bestanden op, in plaats
+     van even oude en nieuwe door elkaar te gebruiken. -->
+<script src="js/mar.js?v=20261025b"></script>
+<script src="js/data-mar-indeling.js?v=20261025b"></script>
+<script src="js/data-opdrachten.js?v=20261025b"></script>
+<script src="js/data-relaties.js?v=20261025b"></script>
+<script src="js/data-automatisch.js?v=20261025b"></script>
+<script src="js/data-controles.js?v=20261025b"></script>
+<script src="js/data-balans.js?v=20261025b"></script>
+<script src="js/data-info.js?v=20261025b"></script>
+<script src="js/config-koppeling.js?v=20261025b"></script>
+<script src="js/data-klas.js?v=20261025b"></script>
+<script src="js/app.js?v=20261025b"></script>
 <!-- Na app.js: koppeling.js gebruikt window.APP. -->
-<script src="js/koppeling.js"></script>
+<script src="js/koppeling.js?v=20261025b"></script>
 <!-- Het beheertabblad voor de vakexperten. Laat je dit bestand weg, dan
      verdwijnt dat tabblad en verandert er verder niets. -->
-<script src="js/beheer.js"></script>
+<script src="js/beheer.js?v=20261025b"></script>
 </body>
 </html>

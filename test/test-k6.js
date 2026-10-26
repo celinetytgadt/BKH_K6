@@ -248,7 +248,8 @@ async function start(map, voorKoppeling) {
   // globale ruimte terecht, net zoals in een echte browser.
   const laad = (b) => {
     const s = dom.window.document.createElement("script");
-    s.textContent = fs.readFileSync(path.join(map, b), "utf8");
+    // Zonder het versienummer (?v=…) dat achter elk script staat.
+    s.textContent = fs.readFileSync(path.join(map, b.split("?")[0]), "utf8");
     dom.window.document.head.appendChild(s);
   };
   bronnen.filter((b) => !/koppeling\.js$/.test(b)).forEach(laad);
@@ -394,14 +395,14 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   venster.querySelector('[data-role="bevestig-ja"]').click();
   await wacht(150);
   const inz = sheets["Inzendingen SKW"];
-  check("11 aankopen in Inzendingen SKW", inz.getLastRow() - 1 === 11, inz.getLastRow());
+  check("enkel de 3 geboekte aankopen in Inzendingen SKW", inz.getLastRow() - 1 === 3, inz.getLastRow());
   check("niets in Inzendingen LEU", sheets["Inzendingen LEU"].getLastRow() === 1);
   const rij = (ref) => inz.rijen.find((r) => r[3] === ref);
   check("AK01 automatisch In orde (grijze lijn telt mee)", rij("AK01")[6] === "In orde", [rij("AK01")[4], rij("AK01")[11]]);
   check("AK02 (omgezet oud werk) In orde", rij("AK02")[6] === "In orde", rij("AK02")[11]);
   check("AK03 Te remediëren", rij("AK03")[6] === "Te remediëren", rij("AK03")[11]);
   check("440000-lijn met relatie in de boeking", /440000\s+1\.210\s+C\s+\[Uitgeverij Lannoo NV\]/.test(rij("AK01")[4]), rij("AK01")[4]);
-  check("AK04 (niet begonnen) krijgt geen beoordeling", rij("AK04")[6] === "" && rij("AK04")[5] === "niet begonnen", rij("AK04"));
+  check("AK04 (niet begonnen) gaat niet mee", !rij("AK04"), inz.rijen.map((r) => r[3]));
   check("Detail SKW gevuld", sheets["Detail SKW"].getLastRow() > 1 && sheets["Detail LEU"].getLastRow() === 1);
   check("werkbestand met SKW in de naam", gedeeld.bestanden.some((b) => b.naam === "werk_SKW_mila.json"), gedeeld.bestanden.map((b) => b.naam));
   venster.querySelector('[data-role="modal-sluit"]') && venster.querySelector('[data-role="modal-sluit"]').click();
@@ -524,11 +525,11 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   await wacht(450);
   check("daarna de namen van TW", !sel2.disabled && [...sel2.options].map((o) => o.value).filter(Boolean).join("|") === "Amal T.",
     sel2.outerHTML);
-  const bewaard = JSON.parse(dom2.window.localStorage.getItem("boekhoudapp_k6_namen") || "{}");
+  const bewaard = JSON.parse(dom2.window.localStorage.getItem("bkhk6_namen") || "{}");
   check("de browser onthoudt de namen (zonder codes)", (bewaard.SKW || []).join("|") === "Mila|Nora" && !/\d{4}/.test(JSON.stringify(bewaard)), bewaard);
 
   serverVertraging = 2000;
-  const dom3 = await start(APP, (dom) => dom.window.localStorage.setItem("boekhoudapp_k6_namen", JSON.stringify(bewaard)));
+  const dom3 = await start(APP, (dom) => dom.window.localStorage.setItem("bkhk6_namen", JSON.stringify(bewaard)));
   const d3 = dom3.window.document;
   const vest3 = d3.getElementById("vestiging-select");
   vest3.value = "SKW";
@@ -541,6 +542,91 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("verse lijst wist de gekozen naam en code niet", sel3.value === "Mila" && d3.getElementById("leerling-code").value === "1234",
     [sel3.value, d3.getElementById("leerling-code").value]);
   serverVertraging = 0;
+
+  console.log("\n10. Eigen opslag, los van de app van Kern 8");
+  // Wat de app van Kern 8 (MetWear) in dezelfde browser achterliet: dezelfde
+  // leerling, dezelfde school, maar ander werk.
+  const k8werk = JSON.stringify({ student: "Mila", boekingen: { AK01: { geboekt: false, rows: [{ bedrag: "1.234", rekening: "604000", dc: "" }] } } });
+  const dom4 = await start(APP, (dom) => {
+    dom.window.localStorage.setItem("boekhoudapp_aanmelding", JSON.stringify({ vestiging: "SKW", naam: "Mila", code: codeMila }));
+    dom.window.localStorage.setItem("boekhoudapp_vestiging", "skw");
+    dom.window.localStorage.setItem("boekhoudapp_laatste_leerling", "Mila");
+    dom.window.localStorage.setItem("boekhoudapp_data_skw_mila", k8werk);
+  });
+  await wacht(150);
+  const w4 = dom4.window, d4 = w4.document;
+  check("de aanmelding van Kern 8 wordt niet overgenomen", w4.APP.getState().student !== "Mila", w4.APP.getState().student);
+  d4.getElementById("vestiging-select").value = "SKW";
+  d4.getElementById("vestiging-select").dispatchEvent(new w4.Event("change"));
+  await wacht(60);
+  d4.getElementById("leerling-select").value = "Mila";
+  d4.getElementById("leerling-code").value = codeMila;
+  d4.getElementById("btn-aanmelden").click();
+  await wacht(150);
+  const ak01 = (w4.APP.getState().boekingen.AK01 || { rows: [] }).rows;
+  check("het werk van Kern 8 komt niet in Kern 6", !ak01.some((r) => r.bedrag === "1.234"), ak01);
+  check("Kern 6 bewaart onder bkhk6_…",
+    !!w4.localStorage.getItem("bkhk6_aanmelding") && !!w4.localStorage.getItem("bkhk6_data_skw_mila"), Object.keys(w4.localStorage));
+  check("de gegevens van Kern 8 blijven onaangeroerd",
+    w4.localStorage.getItem("boekhoudapp_data_skw_mila") === k8werk && !!w4.localStorage.getItem("boekhoudapp_aanmelding"));
+
+  console.log("\n11. Afmelden");
+  const knopAf = d4.getElementById("btn-afmelden");
+  check("knop heet Afmelden en is zichtbaar", !!knopAf && knopAf.textContent === "Afmelden" && !knopAf.hidden);
+  knopAf.click();
+  await wacht(20);
+  d4.querySelector('[data-role="afmeld-ja"]').click();
+  await wacht(150);
+  check("afgemeld en gewist uit de browser",
+    !w4.localStorage.getItem("bkhk6_aanmelding") && !w4.localStorage.getItem("bkhk6_data_skw_mila") && knopAf.hidden,
+    Object.keys(w4.localStorage));
+  check("Kern 8 blijft aangemeld", !!w4.localStorage.getItem("boekhoudapp_aanmelding"));
+
+  console.log("\n12. Typen terwijl het werk nog geladen wordt");
+  serverVertraging = 150;
+  const dom5 = await start(APP, (dom) => {
+    dom.window.localStorage.setItem("bkhk6_aanmelding", JSON.stringify({ vestiging: "SKW", naam: "Mila", code: codeMila }));
+  });
+  const werkVoor = (gedeeld.bestanden.find((b) => b.naam === "werk_SKW_mila.json") || {}).inhoud;
+  await wacht(30);   // het werk is nog onderweg
+  dom5.window.APP.getState().boekingen.AK09 = { geboekt: false, rows: [{ bedrag: "9", rekening: "", dc: "" }] };
+  dom5.window.APP.saveState();
+  await wacht(600);
+  serverVertraging = 0;
+  check("het werk van de server wint (de browser was leeg bij het aanmelden)",
+    Object.keys(dom5.window.APP.getState().boekingen).length > 1, Object.keys(dom5.window.APP.getState().boekingen));
+  check("het werk op de server is niet overschreven",
+    (gedeeld.bestanden.find((b) => b.naam === "werk_SKW_mila.json") || {}).inhoud === werkVoor);
+
+  console.log("\n13. Vergeten op Boeken te drukken");
+  // Mila (w) is nog aangemeld. AK04 begonnen maar niet geboekt; de rest van
+  // de aankopen ofwel geboekt ofwel leeg.
+  const stK = w.APP.getState();
+  stK.boekingen.AK04 = { geboekt: false, rows: [{ auto: true, rekening: "440000", relatie: "", bedrag: "", dc: "" },
+    { bedrag: "50", rekening: "604000", dc: "D", relatie: "", redenering: "", apko: "", stijgtDaalt: "" }] };
+  w.APP.setState(JSON.parse(JSON.stringify(stK)), "Mila");
+  w.APP.saveState();
+  w.APP.renderAlles();
+  const catBol = (cat) => d.querySelector('[data-page-type="categorie"][data-page-cat="' + cat + '"] .status-bolletje').className;
+  check("menu: open oranje ringetje bij Aankopen", /begonnen/.test(catBol("Aankopen")), catBol("Aankopen"));
+  d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
+  await wacht(30);
+  const statusAK04 = d.querySelector("#blok-AK04 .opdracht-status").textContent;
+  check("label bij het schema: nog niet geboekt", statusAK04 === "nog niet geboekt", statusAK04);
+  check("niet klaar: geen herinnering bij AK04", !d.querySelector("#blok-AK04 .boeken-herinnering"));
+  d.querySelectorAll(".koppeling-overlay").forEach((o) => o.remove());
+  d.getElementById("btn-indienen").click();
+  await wacht(30);
+  let vK = d.querySelector(".koppeling-overlay");
+  const vinkK = (naam) => { const v = vK.querySelector('[data-cat="' + naam + '"]'); v.checked = true; v.dispatchEvent(new w.Event("change")); };
+  vinkK("Aankopen");
+  vK.querySelector("#btn-indienen-bevestig").click();
+  await wacht(30);
+  check("Aankopen indienen: melding met AK04", !!vK.querySelector('[data-role="naar-stuk"][data-ref="AK04"]'), vK.textContent.slice(0, 200));
+  vK.querySelector('[data-role="naar-stuk"][data-ref="AK04"]').click();
+  await wacht(30);
+  check("klik: venster dicht, Aankopen open en AK04 opengeklapt",
+    !d.querySelector(".koppeling-overlay") && d.getElementById("blok-AK04") && d.getElementById("blok-AK04").open);
 
   console.log("\n" + (fouten ? fouten + " FOUT(EN)" : "Alles in orde."));
   process.exit(fouten ? 1 : 0);

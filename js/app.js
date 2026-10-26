@@ -108,8 +108,15 @@
      1. State: aanmaken, laden, bewaren
      ======================================================================== */
 
-  var LAATSTE_LEERLING_KEY = "boekhoudapp_laatste_leerling";
-  var PREFIX_KEY = "boekhoudapp_vestiging";
+  /* Alle apps op celinetytgadt.github.io delen hetzelfde geheugen in de
+     browser (localStorage). Daarom begint elke sleutel van deze app met haar
+     eigen voorvoegsel (OPSLAG_APP in config-koppeling.js). Vroeger gebruikte
+     Kern 6 "boekhoudapp", net als de app van Kern 8 (MetWear): dan las de
+     ene app de aanmelding, het werk en de feedback van de andere. De oude
+     sleutels blijven onaangeroerd: die zijn van Kern 8. */
+  var APP_SLEUTEL = (typeof OPSLAG_APP !== "undefined" && OPSLAG_APP) ? OPSLAG_APP : "bkhk6";
+  var LAATSTE_LEERLING_KEY = APP_SLEUTEL + "_laatste_leerling";
+  var PREFIX_KEY = APP_SLEUTEL + "_vestiging";
 
   /* De code van de vestiging (LEU, SKW, TW) hoort mee in de bewaarsleutel:
      twee scholen kunnen een gelijknamige leerling hebben, en op een gedeelde
@@ -120,7 +127,7 @@
   try { opslagPrefix = localStorage.getItem(PREFIX_KEY) || ""; } catch (e) { opslagPrefix = ""; }
 
   function storageKeyVoor(student) {
-    return "boekhoudapp_data_" + (opslagPrefix ? opslagPrefix + "_" : "") + slug(student);
+    return APP_SLEUTEL + "_data_" + (opslagPrefix ? opslagPrefix + "_" : "") + slug(student);
   }
 
   function maakLegeRij() {
@@ -798,7 +805,7 @@
       "<th>Bedrag</th>" +
       '<th title="Denkhulp — niet verplicht">Redenering</th>' +
       '<th title="Denkhulp — niet verplicht">A/P/K/O</th>' +
-      '<th title="Denkhulp — niet verplicht">Stijgt/daalt</th>' +
+      '<th title="Denkhulp — niet verplicht">Stijgt/<wbr>daalt</th>' +
       "<th>Rekeningnr.</th><th>Omschrijving</th><th>D/C</th><th></th>" +
       "</tr></thead><tbody>";
     boeking.rows.forEach(function (row, idx) { html += htmlRedeneerschemaRij(ref, row, idx, geboekt, inOrde); });
@@ -835,8 +842,19 @@
       html += '<span class="status-geboekt">Geboekt ✓</span> ';
       html += '<button type="button" class="btn-heropenen" data-scope="' + escapeAttr(ref) + '" data-role="heropenen">Heropenen om te wijzigen</button>';
     } else {
-      html += '<button type="button" class="btn-boeken" data-scope="' + escapeAttr(ref) + '" data-role="boeken" ' + (klaar ? "" : "disabled") + ">Boeken</button>";
-      if (!klaar) {
+      html += '<button type="button" class="btn-boeken' + (klaar ? " btn-boeken-klaar" : "") + '" data-scope="' + escapeAttr(ref) + '" data-role="boeken" ' + (klaar ? "" : "disabled") + ">Boeken</button>";
+      // Alles ingevuld en debet = credit: enkel nog op Boeken drukken. Dat
+      // vergeten leerlingen weleens, en dan telt de boeking nergens mee.
+      if (klaar) {
+        html += '<span class="boeken-herinnering">Klaar? Druk op <strong>Boeken</strong>: pas dan telt deze boeking mee in je T-rekeningen en kan je ze indienen.</span>';
+      }
+      // Een schema waar nog niets in staat, krijgt nog geen lijst met wat er
+      // ontbreekt: die gele kaders vóór de leerling iets deed, zijn enkel
+      // ruis (op een pagina met veel schema's onder elkaar zelfs veel ruis).
+      var begonnen = boeking.rows.some(function (r) {
+        return r.auto ? !!String(r.relatie || "").trim() : !rijLeeg(r);
+      });
+      if (!klaar && begonnen) {
         // Concreet zeggen wát er nog ontbreekt, per lijn. Anders blijft de
         // knop grijs zonder dat de leerling weet waarom.
         var punten = [];
@@ -1040,9 +1058,9 @@
   function statusVoorOpdracht(ref) {
     var b = state.boekingen[ref];
     var oordeel = laatsteBeoordeling(ref);
+    if (isBegonnenNietGeboekt(ref)) return { klasse: "bezig", tekst: "nog niet geboekt" };
     if (oordeel) return { klasse: "oordeel-" + beoordelingKlasse(oordeel), tekst: oordeel };
     if (b && b.geboekt) return { klasse: "geboekt", tekst: "geboekt" };
-    if (b && b.rows && b.rows.some(function (r) { return !r.auto && !rijLeeg(r); })) return { klasse: "bezig", tekst: "bezig" };
     return { klasse: "", tekst: "nog te doen" };
   }
 
@@ -1085,6 +1103,14 @@
     var tips = [];
     items.forEach(function (o) { if (o.tip && tips.indexOf(o.tip) === -1) tips.push(o.tip); });
     tips.forEach(function (t) { html += '<div class="paneel paneel-tip"><p>' + escapeAttr(t) + "</p></div>"; });
+    // Vooraf zeggen dat de verkopen op slot gaan zodra ze allemaal geboekt
+    // zijn (zie categorieVergrendeld). Anders ontdekt de leerling dat pas als
+    // ze bij de controle nog iets wil verbeteren.
+    if (heeftAutomatisch() && cat === AUTOMATISCH_NA_CATEGORIE && !state.automatischVrij) {
+      html += '<div class="paneel paneel-tip paneel-let-op"><p><strong>Let op:</strong> zodra al je ' +
+        escapeAttr(cat.toLowerCase()) + " geboekt zijn, gaan ze op slot en verschijnen de automatisch geboekte facturen. " +
+        "Kijk ze dus goed na vóór je de laatste boekt. Daarna kan je ze pas weer openen als je vakexpert er feedback op geeft.</p></div>";
+    }
 
     html += '<div class="opdracht-acties">' +
       '<button type="button" class="btn-secundair" data-role="alles-open" data-cat="' + escapeAttr(cat) + '">Alles openklappen</button> ' +
@@ -2219,7 +2245,25 @@
      feedback is, betekent het gewoon "geboekt of niet". Zodra de vakexpert
      iets beoordeeld heeft, neemt die kleur het over — anders zou een
      verrichting groen blijven staan terwijl ze niet in orde is. */
+  /* Begonnen maar nog niet geboekt: er staat iets in het schema, maar de
+     leerling drukte (nog) niet op Boeken. Zo'n boeking telt niet mee in de
+     T-rekeningen en gaat niet mee bij het indienen — daarom tonen het menu
+     en het indienvenster ze apart. */
+  function isBegonnenNietGeboekt(ref) {
+    var b = state.boekingen[ref];
+    if (!b || b.geboekt || !b.rows) return false;
+    return b.rows.some(function (r) {
+      return r.auto ? !!String(r.relatie || "").trim() : !rijLeeg(r);
+    });
+  }
+
+  var BOLLETJE_BEGONNEN = '<span class="status-bolletje begonnen" title="Begonnen, maar nog niet geboekt"></span>';
+
   function htmlNavBolletje(ref, geboekt) {
+    // Eerst: moet de leerling hier nog op Boeken drukken? Dat is wat nu te
+    // doen is (bv. na het heropenen van een boeking met feedback); na het
+    // boeken komt de kleur van de feedback terug.
+    if (!geboekt && isBegonnenNietGeboekt(ref)) return BOLLETJE_BEGONNEN;
     var beoordeling = laatsteBeoordeling(ref);
     if (beoordeling) {
       return '<span class="status-bolletje oordeel-' + beoordelingKlasse(beoordeling) + '" title="' +
@@ -2231,6 +2275,9 @@
   var OORDEEL_ERNST = ["Niet afgerond", "Te remediëren", IN_ORDE];
 
   function htmlCategorieBolletje(items) {
+    // Staat er in de categorie iets dat begonnen is maar niet geboekt, dan
+    // zegt het bolletje eerst dat: daar moet de leerling nog op Boeken drukken.
+    if (items.some(function (o) { return isBegonnenNietGeboekt(o.ref); })) return BOLLETJE_BEGONNEN;
     var slechtste = null;
     items.forEach(function (o) {
       var b = laatsteBeoordeling(o.ref);
@@ -2801,7 +2848,7 @@
 
     // Het menu links inklappen. De keuze blijft bewaard in deze browser,
     // zodat het menu bij een volgend bezoek niet opnieuw openspringt.
-    var MENU_KEY = "boekhoudapp_k6_menu_ingeklapt";
+    var MENU_KEY = APP_SLEUTEL + "_menu_ingeklapt";
     function zetMenuIngeklapt(dicht) {
       document.getElementById("layout").classList.toggle("sidebar-verborgen", dicht);
       try { if (dicht) localStorage.setItem(MENU_KEY, "1"); else localStorage.removeItem(MENU_KEY); } catch (e) {}
@@ -2884,7 +2931,7 @@
       var veld = document.getElementById("leerling-naam-input");
       if (veld) veld.value = naam || "";
     },
-    // Bij het uitloggen: het werk van deze leerling uit deze browser wissen
+    // Bij het afmelden: het werk van deze leerling uit deze browser wissen
     // en met een leeg scherm verder. Enkel aanroepen als het werk veilig op
     // de server staat.
     vergeetStudent: function () {
@@ -2907,6 +2954,28 @@
     slug: slug,
     opmaakTekst: opmaakTekst,
     huidigePagina: function () { return uiState.huidigePagina.type; },
+    // Voor het indienen: heeft elke rubriek met een saldo een plaats op de
+    // eindbalans? Zo niet, dan is die nog niet af en gaat ze niet mee.
+    isBegonnenNietGeboekt: isBegonnenNietGeboekt,
+    // Naar een verrichting springen (vanuit het indienvenster). De
+    // verrichtingen staan per categorie onder elkaar: de categorie openen,
+    // het blok openklappen en ernaartoe scrollen.
+    toonOpdracht: function (ref) {
+      var def = opdrachtVoor(ref);
+      if (!def) return;
+      if (def.categorie === "Resultaatverwerking") uiState.huidigePagina = { type: "resultaat" };
+      else {
+        uiState.huidigePagina = { type: "categorie", cat: def.categorie };
+        uiState.openDocumenten["opdracht-" + ref] = true;
+      }
+      renderAlles();
+      var blok = document.getElementById("blok-" + ref);
+      if (blok && blok.scrollIntoView) blok.scrollIntoView({ block: "start" });
+    },
+    eindbalansVolledig: function () {
+      var kaarten = balansKaarten();
+      return kaarten.length > 0 && kaarten.every(function (k) { return !!state.eindbalans[k.id]; });
+    },
   };
 
   document.addEventListener("DOMContentLoaded", init);
