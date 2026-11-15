@@ -317,6 +317,8 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("verzoek vermeldt de vestiging", verzoeken.some((v) => v.actie === "instellingen" && v.vestiging === "SKW"), verzoeken.slice(-1));
   check("de mededeling/welkomsttekst van SKW komt mee", w.INSTELLINGEN && /Katelijne/.test(w.INSTELLINGEN.mededeling || w.INSTELLINGEN.welkomsttekst || ""), w.INSTELLINGEN);
 
+  check("niet aangemeld: Aanmelden zichtbaar, Afmelden verborgen",
+    d.getElementById("btn-aanmelden").hidden === false && d.getElementById("btn-afmelden").hidden === true);
   d.getElementById("leerling-select").value = "Mila";
   d.getElementById("leerling-code").value = String(sheets.Klas.cel(2, 3));   // code van Lotte
   d.getElementById("btn-aanmelden").click();
@@ -326,6 +328,10 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   d.getElementById("btn-aanmelden").click();
   await wacht(100);
   check("aangemeld als Mila", w.APP.getState().student === "Mila", w.APP.getState().student);
+  check("aangemeld: Afmelden zichtbaar, Aanmelden en codeveld weg, naam vast",
+    d.getElementById("btn-afmelden").hidden === false && d.getElementById("btn-aanmelden").hidden === true &&
+    d.getElementById("leerling-code").hidden === true && d.getElementById("leerling-select").disabled === true,
+    [d.getElementById("btn-afmelden").hidden, d.getElementById("btn-aanmelden").hidden]);
 
   console.log("\n3. De grijze lijn en de verplichte relatie");
   d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
@@ -624,7 +630,7 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
   await wacht(30);
   const statusAK04 = d.querySelector("#blok-AK04 .opdracht-status").textContent;
-  check("label bij het schema: nog niet geboekt", statusAK04 === "nog niet geboekt", statusAK04);
+  check("label bij het schema: nog niet bewaard", statusAK04 === "nog niet bewaard", statusAK04);
   check("niet klaar: geen herinnering bij AK04", !d.querySelector("#blok-AK04 .boeken-herinnering"));
   d.querySelectorAll(".koppeling-overlay").forEach((o) => o.remove());
   d.getElementById("btn-indienen").click();
