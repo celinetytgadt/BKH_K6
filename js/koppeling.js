@@ -96,6 +96,12 @@
     return vestigingen.some(function (v) { return !!v.webAppUrl; });
   }
 
+  /* Is er op deze computer iemand aangemeld bij de gekozen school? Bepaalt
+     welke knop er staat: Aanmelden of Afmelden, nooit allebei. */
+  function isAangemeld() {
+    return !!(aanmelding && aanmelding.naam && vestiging && aanmelding.vestiging === vestiging.code);
+  }
+
   function vestigingMet(code) {
     for (var i = 0; i < vestigingen.length; i++) {
       if (String(vestigingen[i].code) === String(code)) return vestigingen[i];
@@ -339,9 +345,25 @@
       }
       naamInput.hidden = true;
       select.hidden = false;
-      codeVeld.hidden = false;
-      knop.hidden = false;
       if (label) label.setAttribute("for", "leerling-select");
+
+      // Aangemeld: de naam blijft staan, maar codeveld en Aanmelden zijn weg.
+      // Wisselen van leerling of school kan pas na Afmelden.
+      var aangemeld = isAangemeld();
+      codeVeld.hidden = aangemeld;
+      knop.hidden = aangemeld;
+      if (vestSelect) { vestSelect.disabled = aangemeld; vestSelect.classList.toggle("aangemeld", aangemeld); }
+      select.classList.toggle("aangemeld", aangemeld);
+      if (aangemeld) {
+        var namen = klaslijstVoor(vestiging.code);
+        if (namen.indexOf(aanmelding.naam) === -1) namen = [aanmelding.naam];
+        select.innerHTML = namen.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + "</option>"; }).join("");
+        select.value = aanmelding.naam;
+        select.disabled = true;
+        select.setAttribute("data-vestiging", vestiging.code);
+        if (meldingNamen) { status(""); meldingNamen = false; }
+        return;
+      }
 
       var lijst = vestiging ? klaslijstVoor(vestiging.code) : [];
       if (!lijst.length) {
@@ -409,6 +431,7 @@
         aanmelding = { vestiging: vestiging.code, naam: r.leerling || naam, code: code };
         schrijf(AANMELD_KEY, JSON.stringify(aanmelding));
         status("Aangemeld.", "ok");
+        if (vulNamenFn) vulNamenFn();
         naAanmelding();
       })
       .catch(function (err) {
@@ -470,7 +493,7 @@
 
   function toonAfmeldKnop() {
     var knop = document.getElementById("btn-afmelden");
-    if (knop) knop.hidden = !aanmelding;
+    if (knop) knop.hidden = !isAangemeld();
   }
 
   /* Afmelden, voor een gedeelde computer in de klas. Eerst gaat het werk
