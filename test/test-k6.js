@@ -526,8 +526,9 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   vest2.value = "TW";
   vest2.dispatchEvent(new dom2.window.Event("change"));
   const sel2 = d2.getElementById("leerling-select");
-  check("tijdens het laden: 'Namen laden…' en geen vrij naamveld",
-    !sel2.hidden && sel2.disabled && /Namen laden/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden,
+  check("tijdens het laden: 'Namen worden geladen…', alles grijs en geen vrij naamveld",
+    !sel2.hidden && sel2.disabled && /Namen worden geladen/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden &&
+    d2.getElementById("leerling-code").disabled && d2.getElementById("btn-aanmelden").disabled,
     sel2.outerHTML);
   await wacht(450);
   check("daarna de namen van TW", !sel2.disabled && [...sel2.options].map((o) => o.value).filter(Boolean).join("|") === "Amal T.",
