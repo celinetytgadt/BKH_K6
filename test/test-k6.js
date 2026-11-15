@@ -238,6 +238,10 @@ async function start(map, voorKoppeling) {
     runScripts: "dangerously",
     url: "https://test.local/",
     pretendToBeVisual: true,
+    // Onthouden of jsdom DOMContentLoaded al vuurde: readyState staat soms
+    // al op "interactive" vóór het event komt. Dan óók zelf dispatchen liet
+    // init() van app.js twee keer lopen (elke klik telde dubbel).
+    beforeParse(win) { win.document.addEventListener("DOMContentLoaded", () => { win.__dclGevuurd = true; }); },
   });
   dom.window.fetch = server;
   dom.window.navigator.sendBeacon = () => true;
@@ -257,7 +261,7 @@ async function start(map, voorKoppeling) {
   // Staat het document nog te laden, dan vuurt jsdom DOMContentLoaded zelf.
   // Dan óók zelf dispatchen zou init() twee keer laten lopen, waardoor elke
   // klik dubbel geteld wordt — een val die niets met de app te maken heeft.
-  if (dom.window.document.readyState === "loading") {
+  if (!dom.window.__dclGevuurd) {
     await new Promise((res) => dom.window.document.addEventListener("DOMContentLoaded", res, { once: true }));
   } else {
     dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
@@ -526,8 +530,9 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   vest2.value = "TW";
   vest2.dispatchEvent(new dom2.window.Event("change"));
   const sel2 = d2.getElementById("leerling-select");
-  check("tijdens het laden: 'Namen laden…' en geen vrij naamveld",
-    !sel2.hidden && sel2.disabled && /Namen laden/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden,
+  check("tijdens het laden: 'Namen worden geladen…', alles grijs en geen vrij naamveld",
+    !sel2.hidden && sel2.disabled && /Namen worden geladen/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden &&
+    d2.getElementById("leerling-code").disabled && d2.getElementById("btn-aanmelden").disabled,
     sel2.outerHTML);
   await wacht(450);
   check("daarna de namen van TW", !sel2.disabled && [...sel2.options].map((o) => o.value).filter(Boolean).join("|") === "Amal T.",
