@@ -305,7 +305,6 @@
           // haar eigen klaslijst, teksten en taken.
           instellingen = {}; taken = {}; klasServer = null;
           window.INSTELLINGEN = instellingen;
-          if (window.BEHEER && window.BEHEER.vergrendel) window.BEHEER.vergrendel();
           vulNamen();
           haalInstellingen();
         });
@@ -482,7 +481,6 @@
         aanmelding = null;
         feedback = {};
         teBewaren = false;
-        if (window.BEHEER && window.BEHEER.vergrendel) window.BEHEER.vergrendel();
         APP.vergeetStudent();
         var select = document.getElementById("leerling-select");
         var codeVeld = document.getElementById("leerling-code");
@@ -1353,11 +1351,47 @@
     foutUitleg: foutUitleg,
     // Het beheertabblad heeft net bewaard en kreeg alles terug: de app
     // meteen bijwerken, zonder er nóg een verzoek voor te doen.
-    neemBeheerOver: function (r) {
+    // Enkel als het over de school gaat die bovenaan gekozen is: het
+    // beheertabblad kiest zijn school apart (zie hieronder).
+    neemBeheerOver: function (r, code) {
       if (!r || !vestiging) return;
+      if (code && code !== vestiging.code) return;
       zetInstellingen(vestiging.code, r.instellingen, r.taken, r.klas);
     },
+
+    /* Het beheertabblad kiest zijn eigen school, los van de keuze bovenaan
+       (die is voor de leerlingen). Daarom praat het met een vestiging die
+       het zelf meegeeft, en niet met de "gekozen" vestiging. */
+    vestigingen: function () {
+      return vestigingen.map(function (v) { return { code: v.code, naam: vestigingLabel(v) }; });
+    },
+    labelVan: function (code) { return vestigingLabel(vestigingMet(code)); },
+    actiefVoor: function (code) { return !!urlVoor(code); },
+    sleutelVoor: function (code) {
+      var v = vestigingMet(code);
+      return (v && v.sleutel) || "";
+    },
+    haalVoor: function (code, params) {
+      params.vestiging = code;
+      var url = urlVoor(code) + "?" + Object.keys(params).map(function (k) {
+        return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
+      }).join("&");
+      return verzoek(url, { method: "GET" });
+    },
+    stuurVoor: function (code, data) {
+      data.vestiging = code;
+      return verzoek(urlVoor(code), {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(data),
+      });
+    },
   };
+
+  function urlVoor(code) {
+    var v = vestigingMet(code);
+    return (v && v.webAppUrl) || "";
+  }
 
   function init() {
     try {
