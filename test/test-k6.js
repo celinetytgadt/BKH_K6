@@ -630,7 +630,7 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
   await wacht(30);
   const statusAK04 = d.querySelector("#blok-AK04 .opdracht-status").textContent;
-  check("label bij het schema: nog niet geboekt", statusAK04 === "nog niet geboekt", statusAK04);
+  check("label bij het schema: nog niet bewaard", statusAK04 === "nog niet bewaard", statusAK04);
   check("niet klaar: geen herinnering bij AK04", !d.querySelector("#blok-AK04 .boeken-herinnering"));
   d.querySelectorAll(".koppeling-overlay").forEach((o) => o.remove());
   d.getElementById("btn-indienen").click();

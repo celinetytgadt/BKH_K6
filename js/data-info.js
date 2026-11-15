@@ -23,10 +23,10 @@ const INFO_TEKSTEN = {
       "Bij een bankafschrift of kasblad werkt het net zo, maar dan onderaan: de grijze lijn op 550000 of 570000 past zich aan aan de verrichtingen die jij erboven boekt.",
       "Op 400000, 407000, 409000 en 440000 moet je altijd een klant of leverancier kiezen — ook in Exact kan je daar niet zonder.",
       { kop: "Wat moet en wat mag" },
-      "Om te kunnen boeken heeft de app enkel het bedrag, het rekeningnummer en debet of credit nodig. De kolommen redenering, A/P/K/O en stijgt/daalt zijn denkstappen: ze helpen je om tot dat D of C te komen, maar je bent niet verplicht ze in te vullen.",
-      { kop: "Voor je op Boeken klikt" },
+      "Om te kunnen bewaren heeft de app enkel het bedrag, het rekeningnummer en debet of credit nodig. De kolommen redenering, A/P/K/O en stijgt/daalt zijn denkstappen: ze helpen je om tot dat D of C te komen, maar je bent niet verplicht ze in te vullen.",
+      { kop: "Voor je op Bewaren klikt" },
       "Totaal debet en totaal credit moeten gelijk zijn, en elke lijn moet een bedrag, een rekening en een kant hebben. Ontbreekt er iets, dan kleurt die lijn en zie je onderaan wat er nog moet.",
-      "Na het boeken verschijnen je bedragen rechts in de T-rekeningen. Wil je nog iets wijzigen, klik dan op Heropenen.",
+      "Na het bewaren verschijnen je bedragen rechts in de T-rekeningen. Wil je nog iets wijzigen, klik dan op Heropenen.",
     ],
   },
 
