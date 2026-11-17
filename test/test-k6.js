@@ -95,6 +95,11 @@ class Range {
   setVerticalAlignment() { return this; }
   setFontWeight() { return this; }
   setBackground() { return this; }
+  setBackgrounds() { return this; }
+  setNotes(n) { this.sheet.notities = this.sheet.notities || {}; n.forEach((rij, i) => rij.forEach((t, j) => { this.sheet.notities[(this.r + i) + "," + (this.c + j)] = t; })); return this; }
+  getSheet() { return this.sheet; }
+  getColumn() { return this.c; }
+  getNumColumns() { return this.nc; }
   createFilter() { return this; }
   getRow() { return this.r; }
 }
@@ -354,6 +359,9 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("de relatie is een keuzelijst met de leveranciers", opties.includes("Uitgeverij Lannoo NV") && !opties.includes("Brilart"), opties);
   check("de grijze lijn heeft geen prullenbak", !d.querySelector('[data-role="verwijder-rij"][data-scope="AK01"][data-row="0"]'));
   zet("AK01", 0, "relatie", "Uitgeverij Lannoo NV");
+  // De lege lijn die er standaard nog onder staat, mag weg.
+  const leeg = d.querySelector('[data-role="verwijder-rij"][data-scope="AK01"][data-row="3"]');
+  if (leeg) leeg.click();
   d.querySelector('[data-role="boeken"][data-scope="AK01"]').click();
   check("AK01 geboekt", w.APP.getState().boekingen.AK01.geboekt === true);
 
@@ -362,7 +370,7 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   zet("BANK01", 0, "rekening", "400000"); zet("BANK01", 0, "bedrag", "121"); zet("BANK01", 0, "dc", "C");
   d.querySelector('[data-role="rij-toevoegen"][data-scope="BANK01"]').click();
   const bank = w.APP.getState().boekingen.BANK01.rows;
-  check("bank: grijze lijn onderaan op 550000, debet", bank.length === 3 && bank[2].auto && bank[2].rekening === "550000" && bank[2].dc === "D" && bank[2].bedrag === "121", bank);
+  check("bank: grijze lijn onderaan op 550000, debet", bank[bank.length - 1].auto && bank[bank.length - 1].rekening === "550000" && bank[bank.length - 1].dc === "D" && bank[bank.length - 1].bedrag === "121", bank);
   check("bank: relatie verplicht op 400000", /klant gekozen/.test(d.querySelector("#blok-BANK01 .boeken-waarom").textContent));
 
   // Creditnota: de grijze lijn draait vanzelf om.
@@ -413,6 +421,13 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("AK03 Te remediëren", rij("AK03")[6] === "Te remediëren", rij("AK03")[11]);
   check("440000-lijn met relatie in de boeking", /440000\s+1\.210\s+C\s+\[Uitgeverij Lannoo NV\]/.test(rij("AK01")[4]), rij("AK01")[4]);
   check("AK04 (niet begonnen) gaat niet mee", !rij("AK04"), inz.rijen.map((r) => r[3]));
+  check("controles leerling: kolom in Inzendingen SKW", inz.cel(1, 13) === "controles leerling", inz.rijen[0]);
+  check("controles leerling: niets afgevinkt", /^nee: 0 van \d+ afgevinkt$/.test(rij("AK01")[12]), rij("AK01")[12]);
+  const klas = sheets.Klas;
+  const kolom = (kop) => klas.rijen[0].indexOf(kop) + 1;
+  check("Klas: kolommen per categorie na opmerking", klas.cel(1, 5) === "BB" && kolom("AK") === 6 && kolom("EB") > 6, klas.rijen[0]);
+  check("Klas: volle naam als notitie", klas.notities && klas.notities["1,6"] === "Aankopen", klas.notities);
+  check("Mila: AK nog niet OK", klas.cel(3, kolom("AK")) === "", klas.rijen[2]);
   check("Detail SKW gevuld", sheets["Detail SKW"].getLastRow() > 1 && sheets["Detail LEU"].getLastRow() === 1);
   check("werkbestand met SKW in de naam", gedeeld.bestanden.some((b) => b.naam === "werk_SKW_mila.json"), gedeeld.bestanden.map((b) => b.naam));
   venster.querySelector('[data-role="modal-sluit"]') && venster.querySelector('[data-role="modal-sluit"]').click();
@@ -645,6 +660,25 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   await wacht(30);
   check("klik: venster dicht, Aankopen open en AK04 opengeklapt",
     !d.querySelector(".koppeling-overlay") && d.getElementById("blok-AK04") && d.getElementById("blok-AK04").open);
+
+  console.log("\n14. Klasoverzicht: OK zodra alle aankopen in orde zijn");
+  const inzS = sheets["Inzendingen SKW"];
+  const refsAk = w.eval("OPDRACHTEN").filter((o) => o.categorie === "Aankopen").map((o) => o.ref);
+  // De ontbrekende aankopen alsof ze ingediend en in orde bevonden zijn.
+  refsAk.forEach((ref) => {
+    const r = inzS.getLastRow() + 1;
+    [new Date(), "Mila", "Aankopen", ref, "", "geboekt", "In orde", "", false, "JA", "x", "", ""].forEach((v, i) => inzS.zet(r, i + 1, v));
+  });
+  omgeving.onEdit({ range: inzS.getRange(inzS.getLastRow(), 7) });
+  const klasCel = (naam, kop) => { const r = sheets.Klas.rijen.findIndex((x) => x[1] === naam) + 1; return sheets.Klas.cel(r, kolom(kop)); };
+  check("Mila (SKW): OK bij AK", klasCel("Mila", "AK") === "OK", sheets.Klas.rijen);
+  check("Mila: VK niet OK", klasCel("Mila", "VK") === "", sheets.Klas.rijen);
+  check("Lotte (LEU) en Amal (TW): geen OK", klasCel("Lotte V.", "AK") === "" && klasCel("Amal T.", "AK") === "" && klasCel("Nora", "AK") === "", sheets.Klas.rijen);
+  inzS.zet(inzS.getLastRow(), 7, "Te remediëren");
+  omgeving.onEdit({ range: inzS.getRange(inzS.getLastRow(), 1, 1, 13) });
+  check("één aankoop terug te remediëren: OK weg", klasCel("Mila", "AK") === "", sheets.Klas.rijen);
+  omgeving.onEdit({ range: sheets.Klas.getRange(2, 7) });   // ander tabblad: niets
+  check("controles-tekst", omgeving.controlesTekst_({ totaal: 2, af: 2 }) === "ja" && omgeving.controlesTekst_({ totaal: 2, af: 1 }) === "nee: 1 van 2 afgevinkt");
 
   console.log("\n" + (fouten ? fouten + " FOUT(EN)" : "Alles in orde."));
   process.exit(fouten ? 1 : 0);

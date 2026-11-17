@@ -122,6 +122,18 @@ Eén URL voor de drie vestigingen. Zet daarna alles op GitHub. Klaar.
   inzendingen van een leerling (standaard *test*) over als sleutel, uit de
   drie Detail-tabbladen samen. Wat er in de Sleutel stond, wordt vervangen.
 
+- In de kolom *controles leerling* zie je of de leerling de controles van
+  die categorie had afgevinkt bij het indienen: *ja*, *nee: 1 van 3
+  afgevinkt*, of *ja, maar daarna een boeking heropend*.
+- **Klasoverzicht.** In het tabblad *Klas* zet het script rechts van
+  *opmerking* een kolom per categorie (*BB*, *AK*, *VK*, *LON*, *FIN*, *BTW*,
+  *EJ*, *RES*, *EB*). Daar staat **OK** zodra alle verrichtingen van die
+  categorie bij die leerling op *In orde* staan (de nieuwste rij telt,
+  vrijgegeven of niet). Het volgt vanzelf bij elk indienen, bij het
+  automatisch nakijken en telkens je een beoordeling aanpast; anders
+  **Boekhoudapp → Klasoverzicht (OK per categorie) bijwerken**. Tik zelf
+  niets in die kolommen: ze worden telkens overschreven.
+
 Wat *In orde* is, gaat in de app op slot en wordt niet opnieuw ingediend.
 
 ### De automatisch geboekte facturen (VK+01 tot VK+08)
