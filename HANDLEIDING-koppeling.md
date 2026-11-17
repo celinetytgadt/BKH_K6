@@ -74,6 +74,10 @@ code. Met die code openen de vakexperten van díé vestiging het tabblad Beheer
 in de app. Je kan ook rechtstreeks cel B2 van *Instellingen LEU* (SKW, TW)
 invullen.
 
+In het tabblad Beheer kies je de school zelf, los van de schoolkeuze bovenaan
+(die is voor de leerlingen). Kies je in Beheer een andere school, dan gaat het
+weer op slot tot je de code van die school ingeeft.
+
 ### 6. Publiceer het script als web-app
 
 In de code-editor: **Implementeren → Nieuwe implementatie**, type

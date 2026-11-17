@@ -243,6 +243,10 @@ async function start(map, voorKoppeling) {
     runScripts: "dangerously",
     url: "https://test.local/",
     pretendToBeVisual: true,
+    // Onthouden of jsdom DOMContentLoaded al vuurde: readyState staat soms
+    // al op "interactive" vóór het event komt. Dan óók zelf dispatchen liet
+    // init() van app.js twee keer lopen (elke klik telde dubbel).
+    beforeParse(win) { win.document.addEventListener("DOMContentLoaded", () => { win.__dclGevuurd = true; }); },
   });
   dom.window.fetch = server;
   dom.window.navigator.sendBeacon = () => true;
@@ -262,7 +266,7 @@ async function start(map, voorKoppeling) {
   // Staat het document nog te laden, dan vuurt jsdom DOMContentLoaded zelf.
   // Dan óók zelf dispatchen zou init() twee keer laten lopen, waardoor elke
   // klik dubbel geteld wordt — een val die niets met de app te maken heeft.
-  if (dom.window.document.readyState === "loading") {
+  if (!dom.window.__dclGevuurd) {
     await new Promise((res) => dom.window.document.addEventListener("DOMContentLoaded", res, { once: true }));
   } else {
     dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
@@ -318,6 +322,8 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   check("verzoek vermeldt de vestiging", verzoeken.some((v) => v.actie === "instellingen" && v.vestiging === "SKW"), verzoeken.slice(-1));
   check("de mededeling/welkomsttekst van SKW komt mee", w.INSTELLINGEN && /Katelijne/.test(w.INSTELLINGEN.mededeling || w.INSTELLINGEN.welkomsttekst || ""), w.INSTELLINGEN);
 
+  check("niet aangemeld: Aanmelden zichtbaar, Afmelden verborgen",
+    d.getElementById("btn-aanmelden").hidden === false && d.getElementById("btn-afmelden").hidden === true);
   d.getElementById("leerling-select").value = "Mila";
   d.getElementById("leerling-code").value = String(sheets.Klas.cel(2, 3));   // code van Lotte
   d.getElementById("btn-aanmelden").click();
@@ -327,6 +333,10 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   d.getElementById("btn-aanmelden").click();
   await wacht(100);
   check("aangemeld als Mila", w.APP.getState().student === "Mila", w.APP.getState().student);
+  check("aangemeld: Afmelden zichtbaar, Aanmelden en codeveld weg, naam vast",
+    d.getElementById("btn-afmelden").hidden === false && d.getElementById("btn-aanmelden").hidden === true &&
+    d.getElementById("leerling-code").hidden === true && d.getElementById("leerling-select").disabled === true,
+    [d.getElementById("btn-afmelden").hidden, d.getElementById("btn-aanmelden").hidden]);
 
   console.log("\n3. De grijze lijn en de verplichte relatie");
   d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
@@ -501,13 +511,20 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   vs.value = "SKW"; vs.dispatchEvent(new w.Event("change"));
   await wacht(40);
   d.querySelector('[data-page-type="beheer"]').click();
+  const bs = () => d.querySelector('[data-role="beheer-school"]');
+  check("beheer heeft een eigen schoolkeuze, nog leeg", !!bs() && bs().value === "" && !d.querySelector('[data-role="expertcode"]'));
+  bs().value = "SKW"; bs().dispatchEvent(new w.Event("change", { bubbles: true }));
+  await wacht(20);
   d.querySelector('[data-role="expertcode"]').value = "codeSKW";
   d.querySelector('[data-role="ontgrendel"]').click();
   await wacht(80);
   check("beheer SKW open in de app", /Bewaren/.test(w.BEHEER.html()), w.BEHEER.html().slice(0, 200));
   vs.value = "TW"; vs.dispatchEvent(new w.Event("change"));
   await wacht(40);
-  check("na een andere vestiging staat beheer weer op slot", /expertcode/i.test(w.BEHEER.html()) && !/Bewaren/.test(w.BEHEER.html()));
+  check("schoolkeuze bovenaan laat beheer ongemoeid", /Bewaren/.test(w.BEHEER.html()));
+  bs().value = "TW"; bs().dispatchEvent(new w.Event("change", { bubbles: true }));
+  await wacht(20);
+  check("andere school in beheer: weer op slot", /expertcode van TW/.test(w.BEHEER.html()) && !/Bewaren/.test(w.BEHEER.html()), w.BEHEER.html().slice(0, 300));
 
   console.log("\n8. Menu's in de Sheet");
   laatsteAlert = "";
@@ -534,8 +551,9 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   vest2.value = "TW";
   vest2.dispatchEvent(new dom2.window.Event("change"));
   const sel2 = d2.getElementById("leerling-select");
-  check("tijdens het laden: 'Namen laden…' en geen vrij naamveld",
-    !sel2.hidden && sel2.disabled && /Namen laden/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden,
+  check("tijdens het laden: 'Namen worden geladen…', alles grijs en geen vrij naamveld",
+    !sel2.hidden && sel2.disabled && /Namen worden geladen/.test(sel2.textContent) && d2.getElementById("leerling-naam-input").hidden &&
+    d2.getElementById("leerling-code").disabled && d2.getElementById("btn-aanmelden").disabled,
     sel2.outerHTML);
   await wacht(450);
   check("daarna de namen van TW", !sel2.disabled && [...sel2.options].map((o) => o.value).filter(Boolean).join("|") === "Amal T.",
@@ -627,7 +645,7 @@ const vul = (sheet, rijNr, waarden) => waarden.forEach((w, i) => sheet.zet(rijNr
   d.querySelector('[data-page-type="categorie"][data-page-cat="Aankopen"]').click();
   await wacht(30);
   const statusAK04 = d.querySelector("#blok-AK04 .opdracht-status").textContent;
-  check("label bij het schema: nog niet geboekt", statusAK04 === "nog niet geboekt", statusAK04);
+  check("label bij het schema: nog niet bewaard", statusAK04 === "nog niet bewaard", statusAK04);
   check("niet klaar: geen herinnering bij AK04", !d.querySelector("#blok-AK04 .boeken-herinnering"));
   d.querySelectorAll(".koppeling-overlay").forEach((o) => o.remove());
   d.getElementById("btn-indienen").click();

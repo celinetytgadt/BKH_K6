@@ -47,6 +47,44 @@
 
   function api() { return window.KOPPELING_API || null; }
 
+  // De school waarvoor het tabblad werkt. Die kiest de vakexpert hier in
+  // het tabblad zelf, los van de schoolkeuze bovenaan (die is voor de
+  // leerlingen). Een expertcode geldt maar voor één vestiging: een andere
+  // school kiezen zet het tabblad weer op slot.
+  var school = "";
+
+  function schoolLabel() { var a = api(); return a && school ? a.labelVan(school) : ""; }
+
+  // Eén vestiging? Dan valt er niets te kiezen.
+  function kiesStandaardSchool() {
+    var a = api();
+    if (school || !a || !a.vestigingen) return;
+    var lijst = a.vestigingen();
+    if (lijst.length === 1) school = lijst[0].code;
+  }
+
+  function wisselSchool(code) {
+    if (code === school) return;
+    school = code;
+    ontgrendeld = false;
+    expertcode = "";
+    bezig = false;
+    melding = null;
+    model = { instellingen: {}, taken: [], klas: [] };
+    herteken();
+  }
+
+  function htmlSchoolKeuze() {
+    var a = api();
+    var lijst = a && a.vestigingen ? a.vestigingen() : [];
+    if (lijst.length < 2) return "";
+    return '<p class="beheer-rij"><label>School: <select data-role="beheer-school"' + (bezig ? " disabled" : "") + ">" +
+      '<option value="">— kies je school —</option>' +
+      lijst.map(function (v) {
+        return '<option value="' + esc(v.code) + '"' + (v.code === school ? " selected" : "") + ">" + esc(v.naam) + "</option>";
+      }).join("") + "</select></label></p>";
+  }
+
   // De luisteraars blijven liggen als de leerling naar een ander tabblad
   // gaat. Ze mogen dan niets doen.
   function opBeheerpagina() {
@@ -105,22 +143,26 @@
 
   function htmlSlot() {
     var a = api();
-    var label = a ? a.vestigingLabel() : "";
+    var label = schoolLabel();
     var html = '<h1 class="pagina-titel">Beheer</h1>' +
       '<p class="pagina-subtitel">' + (label ? esc(label) + " — " : "") + "voor vakexperten</p>" +
       '<div class="paneel beheer-slot">' +
       "<p>Hier stel je in wat de leerlingen van jouw vestiging te zien krijgen: " +
-      "de namenlijst, de taken in Classroom, de welkomsttekst en de links naar de cursus en de handleiding.</p>";
+      "de namenlijst, de taken in Classroom, de welkomsttekst en de links naar de cursus en de handleiding.</p>" +
+      htmlSchoolKeuze();
 
     // Elke vestiging heeft haar eigen tabbladen en dus haar eigen instellingen.
     // Zolang er geen school gekozen is, weet de app niet waar ze moet zijn.
-    if (!a || !a.actief()) {
-      return html + "<p><strong>Kies eerst bovenaan je school.</strong> De instellingen staan per vestiging apart, " +
-        "in de tabbladen van die school in de Google Sheet.</p></div>";
+    if (!a || !school) {
+      return html + "<p><strong>Kies eerst je school.</strong> De instellingen staan per vestiging apart; elke vestiging heeft haar eigen expertcode.</p>" +
+        htmlMelding() + "</div>";
+    }
+    if (!a.actiefVoor(school)) {
+      return html + "<p>Voor " + esc(label) + " is de koppeling met Google Sheets nog niet ingesteld.</p></div>";
     }
 
     return html +
-      "<p>Je hebt er de expertcode voor nodig. Ken je ze niet, vraag ze aan Céline.</p>" +
+      "<p>Je hebt de expertcode van " + esc(label) + " nodig. Ken je ze niet, vraag ze aan Céline.</p>" +
       '<p class="beheer-rij"><input type="password" data-role="expertcode" placeholder="expertcode" ' +
       'autocomplete="off" value="' + esc(expertcode) + '"> ' +
       '<button type="button" class="btn-primair" data-role="ontgrendel"' + (bezig ? " disabled" : "") + ">" +
@@ -223,10 +265,12 @@
   }
 
   function htmlOpen() {
-    var a = api();
     return '<h1 class="pagina-titel">Beheer</h1>' +
-      '<p class="pagina-subtitel">' + esc(a ? a.vestigingLabel() : "") +
+      '<p class="pagina-subtitel">' + esc(schoolLabel()) +
       " — deze instellingen gelden enkel voor deze vestiging</p>" +
+      '<div class="paneel">' + htmlSchoolKeuze() +
+      '<p class="keuze-nota">Een andere school kiezen zet dit tabblad op slot; je geeft dan de expertcode van die vestiging in. ' +
+      "Wat niet bewaard is, gaat verloren.</p></div>" +
       htmlKlas() + htmlTaken() + htmlTeksten() +
       '<div class="paneel beheer-voet">' +
       '<button type="button" class="btn-primair" data-role="bewaren"' + (bezig ? " disabled" : "") + ">" +
@@ -246,7 +290,8 @@
   function ontgrendel(code) {
     var a = api();
     if (bezig) return;                       // dubbelklik of Enter erbovenop
-    if (!a || !a.actief()) {
+    if (!a || !school) { zegFout("Kies eerst je school."); herteken(); return; }
+    if (!a.actiefVoor(school)) {
       zegFout("Voor deze vestiging is de koppeling met Google Sheets nog niet ingesteld.");
       herteken();
       return;
@@ -254,9 +299,11 @@
     bezig = true;
     zegBezig("Even geduld — het script van Google moet eerst wakker worden. De eerste keer duurt dat vlot tien seconden.");
     herteken();
-    a.haal({ actie: "beheer", sleutel: a.sleutel(), expertcode: code })
+    var voor = school;
+    a.haalVoor(voor, { actie: "beheer", sleutel: a.sleutelVoor(voor), expertcode: code })
       .then(function (r) {
         bezig = false;
+        if (school !== voor) { herteken(); return; }   // intussen een andere school
         if (!r || !r.ok) {
           zegFout(r && r.uitleg ? r.uitleg : "Die code klopt niet.");
           herteken();
@@ -288,6 +335,8 @@
   function bewaar() {
     var a = api();
     if (!a || bezig) return;                 // één keer tegelijk, nooit meer
+    if (!ontgrendeld || !school) return;
+    var voor = school;
     bezig = true;
     zegBezig("Bezig met bewaren…");
     herteken();
@@ -301,9 +350,9 @@
       return { categorie: cat, link: String(t.link || "").trim(), opmerking: t.opmerking || "" };
     });
 
-    a.stuur({
+    a.stuurVoor(voor, {
       actie: "beheerBewaren",
-      sleutel: a.sleutel(),
+      sleutel: a.sleutelVoor(voor),
       expertcode: expertcode,
       instellingen: model.instellingen,
       taken: taken,
@@ -324,13 +373,14 @@
         // aangemaakt heeft, zodat de expert ze meteen kan doorgeven. De
         // ingetikte teksten en taken blijven staan zoals ze hier staan: wie
         // tijdens het bewaren nog iets wijzigde, mag dat niet kwijtspelen.
+        a.neemBeheerOver(r, voor);
+        if (school !== voor) { herteken(); return; }
         model.klas = (r.klas || klas).map(function (l) {
           return { naam: l.naam, code: l.code || "", opmerking: l.opmerking || "", weg: false };
         });
         // De app zelf (welkomsttekst, knoppen, namenlijst) meteen bijwerken
         // met wat de server terugstuurde. Vroeger werd daarvoor nóg eens
         // opgehaald, en dat verdubbelde de wachttijd bij elke bewaarbeurt.
-        a.neemBeheerOver(r);
         zegOk("Bewaard. De leerlingen zien dit zodra ze de app opnieuw openen.");
         herteken();
       })
@@ -341,22 +391,22 @@
         console.error(err);
         zegBezig("De verbinding viel weg. Even nakijken of het toch bewaard is…");
         herteken();
-        kijkNaOfHetBewaardIs(klas, taken);
+        kijkNaOfHetBewaardIs(klas, taken, voor);
       });
   }
 
   /* Haalt opnieuw op wat er in de Sheet staat en vergelijkt dat met wat we
      net probeerden te bewaren. Staat het er, dan is er niets aan de hand. */
-  function kijkNaOfHetBewaardIs(klas, taken) {
+  function kijkNaOfHetBewaardIs(klas, taken, voor) {
     var a = api();
     if (!a) { bezig = false; return; }
     setTimeout(function () {
-      a.haal({ actie: "beheer", sleutel: a.sleutel(), expertcode: expertcode })
+      a.haalVoor(voor, { actie: "beheer", sleutel: a.sleutelVoor(voor), expertcode: expertcode })
         .then(function (r) {
           bezig = false;
           if (r && r.ok && komtOvereen(r, klas, taken)) {
-            neemOver(r);
-            a.neemBeheerOver(r);
+            if (school === voor) neemOver(r);
+            a.neemBeheerOver(r, voor);
             zegOk("Toch bewaard. Het antwoord van de server bleef onderweg steken, maar alles staat in de Sheet.");
           } else {
             zegFout("Bewaren is niet gelukt. Probeer het opnieuw — wat je hier ingevuld hebt, blijft staan.");
@@ -402,18 +452,8 @@
       return !!(a && a.ingesteld());
     },
 
-    // Een andere vestiging gekozen: het beheertabblad gaat weer op slot.
-    // De expertcode en de gegevens hoorden bij de vorige vestiging; zonder
-    // dit werd er met de verkeerde code in de verkeerde tabbladen bewaard.
-    vergrendel: function () {
-      ontgrendeld = false;
-      expertcode = "";
-      bezig = false;
-      melding = null;
-      model = { instellingen: {}, taken: [], klas: [] };
-    },
-
     html: function () {
+      kiesStandaardSchool();
       return ontgrendeld ? htmlOpen() : htmlSlot();
     },
 
@@ -427,6 +467,12 @@
          naar Google. Vandaar: één keer binden, en niet meer. */
       if (gebondenAan === el) return;
       gebondenAan = el;
+
+      el.addEventListener("change", function (e) {
+        if (!opBeheerpagina()) return;
+        var t = e.target;
+        if (t.dataset && t.dataset.role === "beheer-school") wisselSchool(t.value);
+      });
 
       el.addEventListener("input", function (e) {
         if (!opBeheerpagina()) return;
